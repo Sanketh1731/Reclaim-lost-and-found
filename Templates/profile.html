@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% block title %}My Profile | ReClaim{% endblock %}
+
+{% block content %}
+<div class="form-page-wrap">
+  <div class="container">
+    <div class="profile-card">
+      <div style="text-align:center;margin-bottom:28px;">
+        <div class="profile-avatar-large">
+          {{ user['name'][:1]|upper }}
+        </div>
+        <h1 style="font-size:28px;margin-bottom:4px;">{{ user['name'] }}</h1>
+        <p class="muted">{{ user['email'] }}</p>
+
+        <!-- Tier Badge -->
+        <div class="tier-badge">
+          {% if stats['reputation'] >= 50 %}
+            <i class="fa-solid fa-crown"></i> Community Hero ({{ stats['reputation'] }} pts)
+          {% elif stats['reputation'] >= 20 %}
+            <i class="fa-solid fa-medal"></i> Helpful Finder ({{ stats['reputation'] }} pts)
+          {% else %}
+            <i class="fa-solid fa-shield-heart"></i> Community Member ({{ stats['reputation'] }} pts)
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- User Stats Grid -->
+      <div class="metadata-grid" style="margin-bottom:28px;">
+        <div class="meta-box">
+          <span class="meta-label"><i class="fa-solid fa-file-lines"></i> Total Reports</span>
+          <span class="meta-value">{{ stats['reports'] }}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label"><i class="fa-solid fa-circle-check"></i> Items Reclaimed</span>
+          <span class="meta-value" style="color:var(--status-found);">{{ stats['returned'] }}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label"><i class="fa-solid fa-award"></i> Reputation Points</span>
+          <span class="meta-value" style="color:var(--status-match);">{{ stats['reputation'] }}</span>
+        </div>
+        <div class="meta-box">
+          <span class="meta-label"><i class="fa-regular fa-calendar-check"></i> Member Since</span>
+          <span class="meta-value">{{ stats['joined'] }}</span>
+        </div>
+      </div>
+
+      <!-- Update Display Name Form -->
+      <form method="POST" class="form-grid">
+        <div class="form-field">
+          <label for="name">Display Name</label>
+          <div class="input-icon-wrap">
+            <i class="fa-regular fa-user"></i>
+            <input id="name" name="name" type="text" value="{{ user['name'] }}" required>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary" style="width:100%;">
+          <i class="fa-solid fa-check"></i> Update Profile Information
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

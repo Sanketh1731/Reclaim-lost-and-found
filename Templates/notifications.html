@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Notifications | ReClaim{% endblock %}
+
+{% block content %}
+<div class="section-wrap">
+  <div class="container" style="max-width:760px;">
+    <div class="section-head">
+      <div>
+        <p class="section-tag"><i class="fa-regular fa-bell"></i> NOTIFICATION CENTER</p>
+        <h1>Your Notifications</h1>
+      </div>
+
+      {% if notes %}
+        <form method="POST" action="/notifications/read-all">
+          <button type="submit" class="btn btn-ghost btn-sm">
+            <i class="fa-solid fa-check-double"></i> Mark All as Read
+          </button>
+        </form>
+      {% endif %}
+    </div>
+
+    {% if notes %}
+      <div class="notifications-list">
+        {% for n in notes %}
+          <div class="notification-card {% if n['is_read'] == 0 %}unread{% endif %}">
+            <div class="notification-icon">
+              <i class="fa-solid {% if 'Match' in n['title'] %}fa-bolt{% else %}fa-bell{% endif %}"></i>
+            </div>
+
+            <div class="notification-content">
+              <div class="notification-header">
+                <div class="notification-title">
+                  {{ n['title'] }}
+                  {% if n['is_read'] == 0 %}
+                    <span class="status-stamp status-lost" style="font-size:10px;padding:2px 6px;margin-left:6px;">NEW</span>
+                  {% endif %}
+                </div>
+                <span class="notification-time">{{ n['date_created'] }}</span>
+              </div>
+
+              <p style="font-size:14px;color:var(--text-muted);margin-bottom:10px;white-space:pre-line;">{{ n['message'] }}</p>
+
+              <div style="display:flex;gap:8px;align-items:center;">
+                {% if n['link'] %}
+                  <a href="{{ n['link'] }}" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Listing
+                  </a>
+                {% endif %}
+
+                {% if n['is_read'] == 0 %}
+                  <form method="POST" action="/notifications/{{ n['id'] }}/read" style="display:inline;">
+                    <button type="submit" class="btn btn-ghost btn-sm">
+                      <i class="fa-solid fa-check"></i> Mark Read
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state-box">
+        <div class="empty-icon-wrap" style="background:var(--bg-surface-subtle);color:var(--text-muted);">
+          <i class="fa-regular fa-bell-slash"></i>
+        </div>
+        <h3>No notifications yet</h3>
+        <p>When someone posts a matching item or your report receives updates, notifications will appear here.</p>
+        <a href="/" class="btn btn-primary btn-sm">Explore Community Feed</a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

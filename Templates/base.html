@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}ReClaim — Reconnecting Lost Belongings{% endblock %}</title>
+  <meta name="description" content="A modern campus and community lost and found platform with smart matching, instant alerts, and easy reporting." />
+
+  <!-- Google Fonts Preconnect -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+  <!-- Leaflet Map Styles -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+
+  <meta name="theme-color" content="#4f46e5">
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="{{ 'theme-dark' if request.cookies.get('reclaim_theme') == 'dark' else 'theme-light' }}">
+
+  <!-- SITE HEADER -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <a class="brand" href="/" aria-label="ReClaim Home">
+        <div class="brand-icon"><i class="fa-solid fa-cube"></i></div>
+        <span><span class="brand-accent">Re</span>Claim</span>
+      </a>
+
+      <!-- Desktop Nav -->
+      <nav class="site-nav" aria-label="Main Navigation">
+        <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">
+          <i class="fa-solid fa-house" style="font-size:12px;margin-right:4px;"></i> Home
+        </a>
+        <a href="/search?type=lost" class="nav-link {% if request.args.get('type') == 'lost' %}active{% endif %}">
+          <i class="fa-solid fa-magnifying-glass-location" style="font-size:12px;margin-right:4px;"></i> Lost Items
+        </a>
+        <a href="/search?type=found" class="nav-link {% if request.args.get('type') == 'found' %}active{% endif %}">
+          <i class="fa-solid fa-box-open" style="font-size:12px;margin-right:4px;"></i> Found Items
+        </a>
+        <a href="/reclaimed" class="nav-link {% if request.path == '/reclaimed' %}active{% endif %}" style="color:var(--status-found);">
+          <i class="fa-solid fa-check-circle" style="font-size:12px;margin-right:4px;"></i> Reclaimed Archive
+        </a>
+        {% if session.get('user_id') %}
+          <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
+            <i class="fa-solid fa-table-columns" style="font-size:12px;margin-right:4px;"></i> Dashboard
+          </a>
+          {% if is_admin_user %}
+            <a href="/admin" class="nav-link {% if request.path.startswith('/admin') %}active{% endif %}" style="color:var(--status-match)">
+              <i class="fa-solid fa-shield-halved" style="font-size:12px;margin-right:4px;"></i> Admin
+            </a>
+          {% endif %}
+        {% endif %}
+      </nav>
+
+      <!-- Header Search Input -->
+      <form action="/search" method="GET" class="header-search" role="search" aria-label="Quick Search">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input name="query" type="search" placeholder="Search lost or found..." value="{{ request.args.get('query', '') }}" aria-label="Search">
+      </form>
+
+      <!-- Action Buttons -->
+      <div class="header-actions">
+        {% if session.get('user_id') %}
+          <!-- Messages Direct Chat Icon -->
+          <a href="/messages" class="icon-btn" title="Messages & Direct Chat" aria-label="Messages">
+            <i class="fa-regular fa-comment-dots"></i>
+            {% if unread_messages_count > 0 %}
+              <span class="icon-badge">{{ unread_messages_count }}</span>
+            {% endif %}
+          </a>
+
+          <!-- Notification Bell -->
+          <a href="/notifications" class="icon-btn" title="Notifications" aria-label="Notifications">
+            <i class="fa-regular fa-bell"></i>
+            {% if unread_notifications_count > 0 %}
+              <span class="icon-badge">{{ unread_notifications_count }}</span>
+            {% endif %}
+          </a>
+
+          <!-- User Profile Pill -->
+          <a href="/profile" class="user-pill" title="My Profile">
+            <div class="user-avatar">{{ session.get('user_name', 'U')[:1]|upper }}</div>
+            <span class="small">{{ session.get('user_name', 'Account').split()[0] }}</span>
+          </a>
+
+          <a href="/logout" class="btn btn-ghost btn-sm" title="Sign Out">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Logout
+          </a>
+        {% else %}
+          <a href="/login" class="nav-link">Sign In</a>
+          <a href="/register" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-user-plus"></i> Join Free
+          </a>
+        {% endif %}
+
+        <!-- Theme Switcher Toggle -->
+        <button id="theme-toggle" class="icon-btn" aria-label="Toggle dark/light theme" title="Toggle Theme">
+          <i class="fa-regular fa-moon"></i>
+        </button>
+
+        <!-- Mobile Drawer Toggle -->
+        <button id="mobile-toggle" class="icon-btn mobile-only" aria-label="Open mobile navigation menu">
+          <i class="fa-solid fa-bars"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- MOBILE NAVIGATION DRAWER -->
+  <div id="mobile-drawer" class="mobile-nav-drawer" aria-hidden="true">
+    <div class="mobile-nav-panel">
+      <div class="mobile-nav-top">
+        <a class="brand" href="/">
+          <div class="brand-icon"><i class="fa-solid fa-cube"></i></div>
+          <span><span class="brand-accent">Re</span>Claim</span>
+        </a>
+        <button id="mobile-close" class="icon-btn" aria-label="Close menu">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <nav class="mobile-nav-links">
+        <a href="/" class="mobile-nav-link">
+          <i class="fa-solid fa-house"></i> Home
+        </a>
+        <a href="/search?type=lost" class="mobile-nav-link">
+          <i class="fa-solid fa-magnifying-glass-location"></i> Lost Items
+        </a>
+        <a href="/search?type=found" class="mobile-nav-link">
+          <i class="fa-solid fa-box-open"></i> Found Items
+        </a>
+        <a href="/reclaimed" class="mobile-nav-link" style="color:var(--status-found)">
+          <i class="fa-solid fa-check-circle"></i> Reclaimed Archive
+        </a>
+        <a href="/add-lost" class="mobile-nav-link" style="color:var(--status-lost)">
+          <i class="fa-solid fa-circle-plus"></i> Report Lost Item
+        </a>
+        <a href="/add-found" class="mobile-nav-link" style="color:var(--status-found)">
+          <i class="fa-solid fa-circle-plus"></i> Report Found Item
+        </a>
+
+        <div style="border-top:1px solid var(--border-subtle);margin:12px 0;"></div>
+
+        {% if session.get('user_id') %}
+          <a href="/dashboard" class="mobile-nav-link">
+            <i class="fa-solid fa-table-columns"></i> My Dashboard
+          </a>
+          <a href="/profile" class="mobile-nav-link">
+            <i class="fa-solid fa-user"></i> My Profile
+          </a>
+          <a href="/messages" class="mobile-nav-link">
+            <i class="fa-regular fa-comment-dots"></i> Messages
+            {% if unread_messages_count > 0 %}
+              <span class="status-stamp status-match" style="margin-left:auto;">{{ unread_messages_count }} new</span>
+            {% endif %}
+          </a>
+          <a href="/notifications" class="mobile-nav-link">
+            <i class="fa-regular fa-bell"></i> Notifications
+            {% if unread_notifications_count > 0 %}
+              <span class="status-stamp status-lost" style="margin-left:auto;">{{ unread_notifications_count }} new</span>
+            {% endif %}
+          </a>
+          {% if is_admin_user %}
+            <a href="/admin" class="mobile-nav-link" style="color:var(--status-match)">
+              <i class="fa-solid fa-shield-halved"></i> Admin Console
+            </a>
+          {% endif %}
+          <a href="/logout" class="mobile-nav-link" style="color:var(--danger)">
+            <i class="fa-solid fa-arrow-right-from-bracket"></i> Sign Out
+          </a>
+        {% else %}
+          <a href="/login" class="mobile-nav-link">
+            <i class="fa-solid fa-arrow-right-to-bracket"></i> Sign In
+          </a>
+          <a href="/register" class="mobile-nav-link" style="color:var(--primary)">
+            <i class="fa-solid fa-user-plus"></i> Create Free Account
+          </a>
+        {% endif %}
+      </nav>
+    </div>
+  </div>
+
+  <!-- SERVER FLASH MESSAGES (Parsed by JS Toast engine) -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+      <div style="display:none;">
+        {% for category, msg in messages %}
+          <div class="server-flash-item" data-message="{{ msg }}" data-category="{{ category }}"></div>
+        {% endfor %}
+      </div>
+    {% endif %}
+  {% endwith %}
+
+  <!-- MAIN BODY CONTENT -->
+  <main id="main-content">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- SITE FOOTER -->
+  <footer class="site-footer">
+    <div class="container footer-grid">
+      <div class="footer-brand-side">
+        <a class="brand" href="/" style="font-size:20px;">
+          <div class="brand-icon" style="width:28px;height:28px;font-size:13px;"><i class="fa-solid fa-cube"></i></div>
+          <span><span class="brand-accent">Re</span>Claim</span>
+        </a>
+        <p class="muted">Helping communities reconnect people with their lost belongings.</p>
+      </div>
+
+      <nav class="footer-nav" aria-label="Footer Links">
+        <a href="/">Home</a>
+        <a href="/search?type=lost">Lost Items</a>
+        <a href="/search?type=found">Found Items</a>
+        <a href="/reclaimed">Reclaimed Archive</a>
+        <a href="/privacy">Privacy Policy</a>
+        <a href="/terms">Terms of Service</a>
+      </nav>
+
+      <div class="footer-copy subtle small">
+        © {{ current_year }} ReClaim Platform. All rights reserved.
+      </div>
+    </div>
+  </footer>
+
+  <!-- GLOBAL CONFIRMATION MODAL -->
+  <div id="confirm-modal" class="modal-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+        <h3 id="modal-title">Confirm Action</h3>
+      </div>
+      <p id="modal-body" class="muted">Are you sure you want to proceed?</p>
+      <div class="modal-actions">
+        <button id="modal-cancel" type="button" class="btn btn-ghost">Cancel</button>
+        <button id="modal-ok" type="button" class="btn btn-danger">Yes, Proceed</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOAST NOTIFICATION CONTAINER -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Leaflet Map Script -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+
+  <!-- Scripts -->
+  <script src="{{ url_for('static', filename='main.js') }}"></script>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

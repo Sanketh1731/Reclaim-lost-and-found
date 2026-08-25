@@ -1,0 +1,260 @@
+{% extends "base.html" %}
+{% block title %}Reclaimed Archive &amp; Success Stories | ReClaim{% endblock %}
+
+{% block content %}
+<!-- CELEBRATION HERO -->
+<section class="hero" style="padding:40px 0 30px;">
+  <div class="hero-ambient" aria-hidden="true" style="background:radial-gradient(circle at 50% 30%, rgba(16,185,129,0.15) 0%, transparent 70%);"></div>
+  <div class="container hero-inner">
+    <div class="hero-badge-pill" style="background:var(--status-found-bg);color:var(--status-found);border-color:var(--status-found-border);">
+      <i class="fa-solid fa-trophy"></i>
+      <span>COMMUNITY RESOLUTION ARCHIVE</span>
+    </div>
+    
+    <h1>Reclaimed &amp; Reunited <br><span class="gradient-text" style="background:linear-gradient(135deg,#10b981 0%,#059669 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">Success Stories</span></h1>
+    
+    <p>
+      Every item listed below has been safely returned to its rightful owner. We preserve these records to honor honest community members and celebrate reunions!
+    </p>
+
+    <div style="display:flex;gap:12px;justify-content:center;margin-top:16px;flex-wrap:wrap;">
+      <a href="/" class="btn btn-secondary">
+        <i class="fa-solid fa-arrow-left"></i> Back to Available Listings
+      </a>
+      <a href="/add-lost" class="btn btn-danger">
+        <i class="fa-solid fa-magnifying-glass-location"></i> Report Lost Item
+      </a>
+      <a href="/add-found" class="btn btn-success">
+        <i class="fa-solid fa-circle-plus"></i> Report Found Item
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ARCHIVE SEARCH & CATEGORY BAR -->
+<section class="search-filter-section" style="padding-top:10px;">
+  <div class="container">
+    <div class="filter-card">
+      <div class="search-primary-row">
+        <div class="search-input-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input id="live-search-input" type="text" placeholder="Search archive by keyword, item name, or location..." value="{{ current_query or '' }}" autocomplete="off">
+        </div>
+
+        <div class="tab-group" role="tablist">
+          <button type="button" class="tab-btn {% if not current_type or current_type == 'all' %}active{% endif %}" data-tab="all">
+            All Reclaimed ({{ total_reclaimed }})
+          </button>
+          <button type="button" class="tab-btn {% if current_type == 'lost' %}active{% endif %}" data-tab="lost">
+            Recovered Lost ({{ lost_items|length }})
+          </button>
+          <button type="button" class="tab-btn {% if current_type == 'found' %}active{% endif %}" data-tab="found">
+            Claimed Found ({{ found_items|length }})
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Category Chips -->
+      <div class="category-chips" role="group" aria-label="Category Filters">
+        <button type="button" class="chip {% if not current_category or current_category == 'all' %}active{% endif %}" data-category="all">
+          <i class="fa-solid fa-border-all"></i> All Categories
+        </button>
+        <button type="button" class="chip {% if current_category == 'Electronics' %}active{% endif %}" data-category="Electronics">
+          <i class="fa-solid fa-laptop"></i> Electronics
+        </button>
+        <button type="button" class="chip {% if current_category == 'Wallet / Money' %}active{% endif %}" data-category="Wallet / Money">
+          <i class="fa-solid fa-wallet"></i> Wallet / Money
+        </button>
+        <button type="button" class="chip {% if current_category == 'ID / Documents' %}active{% endif %}" data-category="ID / Documents">
+          <i class="fa-solid fa-id-card"></i> ID / Documents
+        </button>
+        <button type="button" class="chip {% if current_category == 'Keys' %}active{% endif %}" data-category="Keys">
+          <i class="fa-solid fa-key"></i> Keys
+        </button>
+        <button type="button" class="chip {% if current_category == 'Clothing' %}active{% endif %}" data-category="Clothing">
+          <i class="fa-solid fa-shirt"></i> Clothing
+        </button>
+        <button type="button" class="chip {% if current_category == 'Accessories' %}active{% endif %}" data-category="Accessories">
+          <i class="fa-solid fa-gem"></i> Accessories
+        </button>
+        <button type="button" class="chip {% if current_category == 'Other' %}active{% endif %}" data-category="Other">
+          <i class="fa-solid fa-box"></i> Other
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GLOBAL EMPTY NOTICE WHEN FILTERING (JS managed) -->
+<div class="container" style="margin-top:20px;">
+  <div id="live-empty-state" class="empty-state-box" style="display:none;">
+    <div class="empty-icon-wrap"><i class="fa-solid fa-magnifying-glass"></i></div>
+    <h3>No matching archive records found</h3>
+    <p>Try searching for a different keyword or choose another category filter.</p>
+  </div>
+</div>
+
+<!-- SECTION 1: RECLAIMED LOST ITEMS (SEPARATE) -->
+<section class="section-wrap" id="lost-section" style="padding-top:20px;padding-bottom:40px;">
+  <div class="container">
+    <div class="section-head" style="border-left:4px solid var(--status-returned);padding-left:14px;margin-bottom:24px;">
+      <div>
+        <p class="section-tag" style="color:var(--status-returned);"><i class="fa-solid fa-check-circle"></i> RECOVERED BELONGINGS</p>
+        <h2 style="font-size:24px;">Recovered Lost Items <span style="font-size:16px;font-weight:600;color:var(--text-muted);margin-left:6px;">({{ lost_items|length }} reclaimed)</span></h2>
+        <p class="muted" style="margin-top:4px;">Belongings that were reported lost and have been safely recovered.</p>
+      </div>
+    </div>
+
+    {% if lost_items %}
+      <div class="items-grid" id="lost-items-grid">
+        {% for item in lost_items %}
+          <div class="filterable-item" 
+               data-type="lost" 
+               data-status="returned" 
+               data-category="{{ item['category'] }}" 
+               data-name="{{ item['name'] }}" 
+               data-desc="{{ item['description'] }}" 
+               data-location="{{ item['location'] }}">
+            <a href="/item/lost/{{ item['id'] }}" class="item-card-link">
+              <article class="item-card" aria-label="Reclaimed item: {{ item['name'] }}" style="opacity:0.95;">
+                <div class="card-punch-hole" title="Claim ticket"></div>
+                
+                <div class="card-image-wrap">
+                  {% if item['image'] %}
+                    <img src="{{ url_for('uploaded_file', filename=item['image']) }}" alt="{{ item['name'] }}" loading="lazy">
+                  {% else %}
+                    <div class="no-image-placeholder">
+                      <i class="fa-solid fa-circle-check"></i>
+                      <span>No image uploaded</span>
+                    </div>
+                  {% endif %}
+
+                  <div class="card-badges">
+                    <span class="status-stamp status-returned"><i class="fa-solid fa-check"></i> Reclaimed</span>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <div class="card-meta-top">
+                    <span class="card-category-tag">
+                      <i class="fa-solid fa-tag"></i> {{ item['category'] }}
+                    </span>
+                    <span class="card-report-id">#L-{{ item['id'] }}</span>
+                  </div>
+
+                  <h3>{{ item['name'] }}</h3>
+                  <p class="card-desc">{{ item['description'] }}</p>
+
+                  <div class="card-info-rows">
+                    <div class="info-row" title="Original location">
+                      <i class="fa-solid fa-location-dot"></i>
+                      <span>{{ item['location'] }}</span>
+                    </div>
+                    <div class="info-row" title="Date reported">
+                      <i class="fa-regular fa-clock"></i>
+                      <span>{{ item['date_reported'] }}</span>
+                    </div>
+                  </div>
+
+                  <div class="card-footer-action">
+                    <span style="color:var(--status-returned);font-weight:700;">View Reunion Story</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </div>
+                </div>
+              </article>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state-box" style="padding:28px 20px;">
+        <div class="empty-icon-wrap"><i class="fa-solid fa-inbox"></i></div>
+        <h3>No recovered lost records yet</h3>
+        <p>Items marked as returned will appear in this archive.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- SECTION 2: RECLAIMED FOUND ITEMS (SEPARATE) -->
+<section class="section-wrap" id="found-section" style="padding-top:20px;padding-bottom:60px;">
+  <div class="container">
+    <div class="section-head" style="border-left:4px solid var(--status-found);padding-left:14px;margin-bottom:24px;">
+      <div>
+        <p class="section-tag" style="color:var(--status-found);"><i class="fa-solid fa-handshake"></i> CLAIMED FOUND ITEMS</p>
+        <h2 style="font-size:24px;">Claimed Found Items <span style="font-size:16px;font-weight:600;color:var(--text-muted);margin-left:6px;">({{ found_items|length }} reclaimed)</span></h2>
+        <p class="muted" style="margin-top:4px;">Items turned in by finders and successfully handed back to their verified owners.</p>
+      </div>
+    </div>
+
+    {% if found_items %}
+      <div class="items-grid" id="found-items-grid">
+        {% for item in found_items %}
+          <div class="filterable-item" 
+               data-type="found" 
+               data-status="returned" 
+               data-category="{{ item['category'] }}" 
+               data-name="{{ item['name'] }}" 
+               data-desc="{{ item['description'] }}" 
+               data-location="{{ item['location'] }}">
+            <a href="/item/found/{{ item['id'] }}" class="item-card-link">
+              <article class="item-card" aria-label="Claimed item: {{ item['name'] }}" style="opacity:0.95;">
+                <div class="card-punch-hole" title="Claim ticket"></div>
+                
+                <div class="card-image-wrap">
+                  {% if item['image'] %}
+                    <img src="{{ url_for('uploaded_file', filename=item['image']) }}" alt="{{ item['name'] }}" loading="lazy">
+                  {% else %}
+                    <div class="no-image-placeholder">
+                      <i class="fa-solid fa-handshake"></i>
+                      <span>No image uploaded</span>
+                    </div>
+                  {% endif %}
+
+                  <div class="card-badges">
+                    <span class="status-stamp status-returned"><i class="fa-solid fa-check"></i> Reclaimed</span>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <div class="card-meta-top">
+                    <span class="card-category-tag">
+                      <i class="fa-solid fa-tag"></i> {{ item['category'] }}
+                    </span>
+                    <span class="card-report-id">#F-{{ item['id'] }}</span>
+                  </div>
+
+                  <h3>{{ item['name'] }}</h3>
+                  <p class="card-desc">{{ item['description'] }}</p>
+
+                  <div class="card-info-rows">
+                    <div class="info-row" title="Turned-in location">
+                      <i class="fa-solid fa-location-dot"></i>
+                      <span>{{ item['location'] }}</span>
+                    </div>
+                    <div class="info-row" title="Date reported">
+                      <i class="fa-regular fa-clock"></i>
+                      <span>{{ item['date_reported'] }}</span>
+                    </div>
+                  </div>
+
+                  <div class="card-footer-action">
+                    <span style="color:var(--status-returned);font-weight:700;">View Reunion Story</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </div>
+                </div>
+              </article>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state-box" style="padding:28px 20px;">
+        <div class="empty-icon-wrap"><i class="fa-solid fa-inbox"></i></div>
+        <h3>No claimed found records yet</h3>
+        <p>Found items marked as returned will appear in this archive.</p>
+      </div>
+    {% endif %}
+  </div>
+</section>
+{% endblock %}

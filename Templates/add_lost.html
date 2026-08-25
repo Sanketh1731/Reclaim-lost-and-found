@@ -1,0 +1,242 @@
+{% extends "base.html" %}
+{% block title %}Report Lost Item | ReClaim{% endblock %}
+
+{% block content %}
+<div class="form-page-wrap">
+  <div class="container">
+    <div class="form-card-container">
+      <div class="form-header-block">
+        <div class="card-category-tag" style="margin-bottom:8px;color:var(--status-lost);background:var(--status-lost-bg);">
+          <i class="fa-solid fa-magnifying-glass-location"></i> REPORT LOST ITEM
+        </div>
+        <h1>Tell us what you lost</h1>
+        <p class="muted">Provide clear details to help the community and our match engine identify your item.</p>
+      </div>
+
+      <form method="POST" enctype="multipart/form-data" class="form-grid" novalidate>
+        <!-- Item Name -->
+        <div class="form-field">
+          <label for="name">Item Name *</label>
+          <div class="input-icon-wrap">
+            <i class="fa-solid fa-cube"></i>
+            <input id="name" name="name" type="text" placeholder="e.g. Apple AirPods Pro (White Case), Blue Titan Water Bottle" required>
+          </div>
+        </div>
+
+        <!-- Category -->
+        <div class="form-field">
+          <label for="category">Item Category *</label>
+          <select id="category" name="category" required>
+            <option value="">Select a category</option>
+            <option value="Electronics">💻 Electronics</option>
+            <option value="Wallet / Money">👛 Wallet / Money</option>
+            <option value="ID / Documents">🪪 ID / Documents / Cards</option>
+            <option value="Keys">🔑 Keys &amp; Keychains</option>
+            <option value="Clothing">👕 Clothing &amp; Apparel</option>
+            <option value="Accessories">💍 Jewelry &amp; Accessories</option>
+            <option value="Books">📚 Books &amp; Notebooks</option>
+            <option value="Other">📦 Other Belongings</option>
+          </select>
+        </div>
+
+        <!-- Last Seen Location & Interactive Map Picker -->
+        <div class="form-field">
+          <label for="location">Last Seen Location *</label>
+          <div class="input-icon-wrap">
+            <i class="fa-solid fa-location-dot"></i>
+            <input id="location" name="location" type="text" placeholder="e.g. Central Library 2nd Floor, Campus Cafeteria, Science Block Room 304" required>
+          </div>
+
+          <input type="hidden" id="latitude" name="latitude" value="">
+          <input type="hidden" id="longitude" name="longitude" value="">
+
+          <!-- Campus Quick Presets -->
+          <div style="margin-top:10px;">
+            <span class="subtle" style="font-size:11.5px;font-weight:700;text-transform:uppercase;display:block;margin-bottom:4px;">
+              <i class="fa-solid fa-location-crosshairs"></i> Quick Campus Locations:
+            </span>
+            <div class="campus-presets-group">
+              <button type="button" class="preset-chip" data-name="Central Library (Floor 2)" data-lat="40.7130" data-lng="-74.0062">🏛️ Central Library</button>
+              <button type="button" class="preset-chip" data-name="Student Cafeteria & Food Court" data-lat="40.7122" data-lng="-74.0055">☕ Student Cafeteria</button>
+              <button type="button" class="preset-chip" data-name="Tech & Engineering Lab" data-lat="40.7135" data-lng="-74.0048">💻 Tech & CS Lab</button>
+              <button type="button" class="preset-chip" data-name="Science Complex Quad" data-lat="40.7142" data-lng="-74.0065">🔬 Science Complex</button>
+              <button type="button" class="preset-chip" data-name="Sports Complex & Gym" data-lat="40.7118" data-lng="-74.0072">🏋️ Sports Gym</button>
+              <button type="button" class="preset-chip" data-name="Main Campus Auditorium" data-lat="40.7129" data-lng="-74.0070">🎭 Main Auditorium</button>
+              <button type="button" class="preset-chip" data-name="North Student Parking Lot" data-lat="40.7110" data-lng="-74.0060">🅿️ Parking Lot A</button>
+            </div>
+          </div>
+
+          <!-- Interactive Mini Map Picker & GPS Button -->
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+              <span class="muted" style="font-size:12px;display:flex;align-items:center;gap:4px;">
+                <i class="fa-solid fa-map-pin"></i> Click map to drop pin or use GPS:
+              </span>
+              <button type="button" class="btn btn-ghost btn-sm" id="btn-current-location" style="padding:3px 10px;font-size:12px;color:var(--primary);display:inline-flex;align-items:center;gap:5px;border:1px solid var(--border-subtle);">
+                <i class="fa-solid fa-crosshairs"></i> Use My Current Location
+              </button>
+            </div>
+            <div id="picker-map" class="location-picker-map-box"></div>
+          </div>
+        </div>
+
+        <!-- Description -->
+        <div class="form-field">
+          <label for="description">Item Description &amp; Identifying Details *</label>
+          <textarea id="description" name="description" rows="4" placeholder="Describe unique features like color, scratches, stickers, brand, case type, or specific markings..." required></textarea>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="form-field">
+          <label for="contact">Contact Information *</label>
+          <div class="input-icon-wrap">
+            <i class="fa-solid fa-phone"></i>
+            <input id="contact" name="contact" type="text" placeholder="e.g. +1 (555) 234-5678 or student@university.edu" required>
+          </div>
+        </div>
+
+        <!-- Image Upload Drag & Drop -->
+        <div class="form-field">
+          <label>Item Photo (Optional)</label>
+          <div class="dropzone-container" id="lost-dropzone">
+            <input id="image" name="image" type="file" class="dropzone-input" accept=".png,.jpg,.jpeg,.webp">
+            
+            <div class="dropzone-prompt">
+              <div class="dropzone-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+              <div class="dropzone-text">Drag and drop photo here, or browse files</div>
+              <div class="dropzone-subtext">Supports PNG, JPG, JPEG, WEBP (Max 5MB)</div>
+            </div>
+
+            <div class="dropzone-preview-wrap" style="display:none;">
+              <img src="" alt="Preview" class="dropzone-preview-img">
+              <button type="button" class="dropzone-remove-btn" title="Remove photo">&times;</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="margin-top:10px;">
+          <button type="submit" class="btn btn-danger btn-lg" style="width:100%;">
+            <i class="fa-solid fa-paper-plane"></i> Publish Lost Item Report
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const mapContainer = document.getElementById("picker-map");
+  if (!mapContainer) return;
+
+  const latInput = document.getElementById("latitude");
+  const lngInput = document.getElementById("longitude");
+  const locInput = document.getElementById("location");
+
+  const defaultLat = 40.7128;
+  const defaultLng = -74.0060;
+
+  const map = L.map("picker-map", {
+    center: [defaultLat, defaultLng],
+    zoom: 16
+  });
+
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  let marker = null;
+
+  function setPin(lat, lng) {
+    latInput.value = lat.toFixed(6);
+    lngInput.value = lng.toFixed(6);
+
+    if (marker) {
+      marker.setLatLng([lat, lng]);
+    } else {
+      const customIcon = L.divIcon({
+        html: `<div class="custom-map-pin lost"><i class="fa-solid fa-location-dot"></i></div>`,
+        className: "custom-leaflet-pin",
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
+      });
+      marker = L.marker([lat, lng], { icon: customIcon, draggable: true }).addTo(map);
+
+      marker.on("dragend", function (e) {
+        const pos = e.target.getLatLng();
+        latInput.value = pos.lat.toFixed(6);
+        lngInput.value = pos.lng.toFixed(6);
+      });
+    }
+    map.panTo([lat, lng]);
+  }
+
+  map.on("click", function (e) {
+    setPin(e.latlng.lat, e.latlng.lng);
+  });
+
+  // Preset chips handler
+  document.querySelectorAll(".preset-chip").forEach(chip => {
+    chip.addEventListener("click", function () {
+      document.querySelectorAll(".preset-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+
+      const name = chip.dataset.name;
+      const lat = parseFloat(chip.dataset.lat);
+      const lng = parseFloat(chip.dataset.lng);
+
+      locInput.value = name;
+      setPin(lat, lng);
+    });
+  });
+
+  // Use Current Location GPS Handler
+  const btnCurrentLoc = document.getElementById("btn-current-location");
+  if (btnCurrentLoc) {
+    btnCurrentLoc.addEventListener("click", function () {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+      btnCurrentLoc.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Locating...`;
+      btnCurrentLoc.disabled = true;
+
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          btnCurrentLoc.innerHTML = `<i class="fa-solid fa-circle-check" style="color:var(--success);"></i> Current Location Set!`;
+          btnCurrentLoc.disabled = false;
+          const lat = pos.coords.latitude;
+          const lng = pos.coords.longitude;
+          setPin(lat, lng);
+          map.setView([lat, lng], 17);
+
+          if (!locInput.value || locInput.value.startsWith("Current Location")) {
+            locInput.value = `Current Location (${lat.toFixed(4)}, ${lng.toFixed(4)})`;
+          }
+
+          // Reverse geocode via OSM Nominatim
+          fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+            .then(res => res.json())
+            .then(data => {
+              if (data && data.display_name) {
+                const parts = data.display_name.split(",");
+                locInput.value = parts.slice(0, 3).join(",").trim();
+              }
+            })
+            .catch(() => {});
+        },
+        function (err) {
+          btnCurrentLoc.innerHTML = `<i class="fa-solid fa-crosshairs"></i> Use My Current Location`;
+          btnCurrentLoc.disabled = false;
+          alert("Unable to get current location. Please allow browser location access or click on the map.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+  }
+});
+</script>
+{% endblock %}

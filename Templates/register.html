@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Create Account | ReClaim{% endblock %}
+
+{% block content %}
+<div class="form-page-wrap">
+  <div class="container">
+    <div class="auth-split-card">
+      <!-- Visual Side -->
+      <div class="auth-visual-side">
+        <div class="auth-visual-content">
+          <div class="brand" style="color:#ffffff;margin-bottom:28px;">
+            <div class="brand-icon" style="background:rgba(255,255,255,0.2);box-shadow:none;"><i class="fa-solid fa-cube"></i></div>
+            <span>ReClaim</span>
+          </div>
+
+          <h2>Join the ReClaim Network</h2>
+          <p>Help connect lost items with their owners and earn reputation in your community.</p>
+        </div>
+
+        <div style="font-size:13px;opacity:0.8;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-shield-halved"></i>
+          <span>100% Free · Community Powered</span>
+        </div>
+      </div>
+
+      <!-- Form Side -->
+      <div class="auth-form-side">
+        <h1>Create Account</h1>
+        <p class="muted" style="margin-bottom:24px;">Join to report and track lost or found items.</p>
+
+        {% if error %}
+          <div class="flash flash-danger" style="margin-bottom:18px;">
+            <i class="fa-solid fa-triangle-exclamation"></i> {{ error }}
+          </div>
+        {% endif %}
+
+        <form method="POST" class="form-grid" novalidate>
+          <div class="form-field">
+            <label for="name">Full Name *</label>
+            <div class="input-icon-wrap">
+              <i class="fa-regular fa-user"></i>
+              <input id="name" name="name" type="text" placeholder="e.g. Alex Johnson" required autocomplete="name">
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="email">Email Address *</label>
+            <div class="input-icon-wrap">
+              <i class="fa-regular fa-envelope"></i>
+              <input id="email" name="email" type="email" placeholder="name@university.edu" required autocomplete="email">
+            </div>
+          </div>
+
+          <div class="form-field">
+            <label for="password">Password *</label>
+            <div class="input-icon-wrap" style="position:relative;">
+              <i class="fa-solid fa-lock"></i>
+              <input id="password" name="password" type="password" placeholder="At least 6 characters" required autocomplete="new-password">
+              <button type="button" class="toggle-password-btn" data-target="password" style="position:absolute;right:14px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--text-subtle);cursor:pointer;" title="Show / Hide Password">
+                <i class="fa-regular fa-eye"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%;margin-top:8px;">
+            <i class="fa-solid fa-user-plus"></i> Create Account
+          </button>
+        </form>
+
+        <div style="text-align:center;margin-top:24px;font-size:14px;color:var(--text-muted);">
+          Already have an account? 
+          <a href="/login" style="color:var(--primary);font-weight:700;">Sign in here</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

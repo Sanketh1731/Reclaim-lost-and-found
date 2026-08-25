@@ -1,0 +1,532 @@
+{% extends "base.html" %}
+{% block title %}ReClaim — Reconnect Lost Belongings Fast{% endblock %}
+
+{% block content %}
+<!-- HERO SECTION -->
+<section class="hero">
+  <div class="hero-ambient" aria-hidden="true"></div>
+  <div class="container hero-inner">
+    <div class="hero-badge-pill">
+      <span class="pulse-dot"></span>
+      <span>COMMUNITY LOST &amp; FOUND NETWORK</span>
+    </div>
+    
+    <h1>Lost something? <br><span class="gradient-text">Let's ReClaim it together.</span></h1>
+    
+    <p>
+      Report lost belongings or register items you've found. Our smart matching algorithm connects finders with owners in real-time.
+    </p>
+
+    <div class="hero-buttons">
+      <a href="/add-lost" class="btn btn-danger btn-lg">
+        <i class="fa-solid fa-magnifying-glass-location"></i> Report Lost Item
+      </a>
+      <a href="/add-found" class="btn btn-success btn-lg">
+        <i class="fa-solid fa-circle-plus"></i> Report Found Item
+      </a>
+    </div>
+
+    <!-- Live Platform Metrics -->
+    <div class="hero-stats">
+      <a href="/reclaimed" class="stat-item" style="text-decoration:none;color:inherit;" title="Click to view all reunited items">
+        <span class="stat-number" style="color:var(--status-found);">{{ stats.recovered }}</span>
+        <span class="stat-label"><i class="fa-solid fa-circle-check" style="color:var(--status-found);font-size:11px;"></i> Reconnected <span style="font-size:11px;opacity:0.8;">(View Archive →)</span></span>
+      </a>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-number">{{ stats.active }}</span>
+        <span class="stat-label">Available Listings</span>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-item">
+        <span class="stat-number">{{ stats.users }}</span>
+        <span class="stat-label">Community Helpers</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- REAL-TIME SEARCH & FILTER BAR -->
+<section class="search-filter-section">
+  <div class="container">
+    <div class="filter-card">
+      <div class="search-primary-row">
+        <!-- Live Instant Search Input -->
+        <div class="search-input-wrap">
+          <i class="fa-solid fa-magnifying-glass search-icon"></i>
+          <input id="live-search-input" type="text" placeholder="Search available items by keyword, location, description..." value="{{ current_query or '' }}" autocomplete="off">
+        </div>
+
+        <!-- Filter Tabs for Distinct Separation -->
+        <div class="tab-group" role="tablist">
+          <button type="button" class="tab-btn {% if not current_type or current_type == 'all' %}active{% endif %}" data-tab="all">
+            <i class="fa-solid fa-layer-group"></i> All Available
+          </button>
+          <button type="button" class="tab-btn {% if current_type == 'lost' %}active{% endif %}" data-tab="lost" style="color:var(--status-lost);">
+            <i class="fa-solid fa-circle-exclamation"></i> Lost Items ({{ stats.active_lost }})
+          </button>
+          <button type="button" class="tab-btn {% if current_type == 'found' %}active{% endif %}" data-tab="found" style="color:var(--status-found);">
+            <i class="fa-solid fa-box-open"></i> Found Items ({{ stats.active_found }})
+          </button>
+        </div>
+
+        <!-- View Mode Switcher (Grid vs Map) -->
+        <div class="view-mode-toggle" style="display:flex;align-items:center;background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);border-radius:var(--radius-sm);padding:3px;gap:2px;">
+          <button type="button" class="btn btn-sm active" id="btn-view-grid" style="padding:6px 12px;font-size:12.5px;border-radius:var(--radius-xs);">
+            <i class="fa-solid fa-table-cells-large"></i> Grid
+          </button>
+          <button type="button" class="btn btn-sm btn-ghost" id="btn-view-map" style="padding:6px 12px;font-size:12.5px;border-radius:var(--radius-xs);">
+            <i class="fa-solid fa-map-location-dot"></i> Map View
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Category Chips -->
+      <div class="category-chips" role="group" aria-label="Category Filters">
+        <button type="button" class="chip {% if not current_category or current_category == 'all' %}active{% endif %}" data-category="all">
+          <i class="fa-solid fa-border-all"></i> All Categories
+        </button>
+        <button type="button" class="chip {% if current_category == 'Electronics' %}active{% endif %}" data-category="Electronics">
+          <i class="fa-solid fa-laptop"></i> Electronics
+        </button>
+        <button type="button" class="chip {% if current_category == 'Wallet / Money' %}active{% endif %}" data-category="Wallet / Money">
+          <i class="fa-solid fa-wallet"></i> Wallet / Money
+        </button>
+        <button type="button" class="chip {% if current_category == 'ID / Documents' %}active{% endif %}" data-category="ID / Documents">
+          <i class="fa-solid fa-id-card"></i> ID / Documents
+        </button>
+        <button type="button" class="chip {% if current_category == 'Keys' %}active{% endif %}" data-category="Keys">
+          <i class="fa-solid fa-key"></i> Keys
+        </button>
+        <button type="button" class="chip {% if current_category == 'Clothing' %}active{% endif %}" data-category="Clothing">
+          <i class="fa-solid fa-shirt"></i> Clothing
+        </button>
+        <button type="button" class="chip {% if current_category == 'Accessories' %}active{% endif %}" data-category="Accessories">
+          <i class="fa-solid fa-gem"></i> Accessories
+        </button>
+        <button type="button" class="chip {% if current_category == 'Books' %}active{% endif %}" data-category="Books">
+          <i class="fa-solid fa-book"></i> Books
+        </button>
+        <button type="button" class="chip {% if current_category == 'Other' %}active{% endif %}" data-category="Other">
+          <i class="fa-solid fa-box"></i> Other
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- INTERACTIVE MAP VIEW (TOGGLEABLE) -->
+<section class="section-wrap map-view-wrapper" id="map-view-section" style="display:none;padding-top:14px;padding-bottom:50px;">
+  <div class="container">
+    <div class="map-card-shell">
+      <div class="map-header-bar">
+        <div>
+          <h3 style="margin:0 0 2px;font-size:18px;display:flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-map-location-dot" style="color:var(--primary);"></i> Campus Lost &amp; Found Explorer
+          </h3>
+          <span class="muted" style="font-size:12.5px;">Click any pin to inspect item details, photo, and matches</span>
+        </div>
+        <div class="map-legend">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-map-locate-me" style="font-size:12px;padding:4px 10px;display:inline-flex;align-items:center;gap:5px;">
+            <i class="fa-solid fa-crosshairs"></i> Locate Me
+          </button>
+          <div class="legend-item"><span class="legend-dot lost"></span> <span>Lost Items</span></div>
+          <div class="legend-item"><span class="legend-dot found"></span> <span>Found Items</span></div>
+        </div>
+      </div>
+      <div id="explore-map"></div>
+    </div>
+  </div>
+</section>
+
+<!-- GLOBAL EMPTY NOTICE WHEN FILTERING (JS managed) -->
+<div class="container" id="live-empty-container" style="margin-top:20px;">
+  <div id="live-empty-state" class="empty-state-box" style="display:none;">
+    <div class="empty-icon-wrap"><i class="fa-solid fa-magnifying-glass"></i></div>
+    <h3>No matching available items found</h3>
+    <p>Try searching for a different keyword or choose another category filter.</p>
+    <div style="display:flex;gap:10px;justify-content:center;">
+      <a href="/add-lost" class="btn btn-primary btn-sm">Report Lost Item</a>
+      <a href="/add-found" class="btn btn-secondary btn-sm">Report Found Item</a>
+    </div>
+  </div>
+</div>
+
+<!-- SECTION 1: AVAILABLE LOST ITEMS (SEPARATE) -->
+<section class="section-wrap list-view-section" id="lost-section" style="padding-top:20px;padding-bottom:40px;">
+  <div class="container">
+    <div class="section-head" style="border-left:4px solid var(--status-lost);padding-left:14px;margin-bottom:24px;">
+      <div>
+        <p class="section-tag" style="color:var(--status-lost);"><i class="fa-solid fa-circle-exclamation"></i> MISSING BELONGINGS</p>
+        <h2 style="font-size:24px;">Available Lost Items <span style="font-size:16px;font-weight:600;color:var(--text-muted);margin-left:6px;">({{ lost_items|length }} active)</span></h2>
+        <p class="muted" style="margin-top:4px;">Items currently reported lost by community members awaiting recovery.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a href="/add-lost" class="btn btn-danger btn-sm">
+          <i class="fa-solid fa-plus"></i> Report Lost Item
+        </a>
+      </div>
+    </div>
+
+    {% if lost_items %}
+      <div class="items-grid" id="lost-items-grid">
+        {% for item in lost_items %}
+          <div class="filterable-item" 
+               data-type="lost" 
+               data-status="{{ item['status']|lower }}" 
+               data-category="{{ item['category'] }}" 
+               data-name="{{ item['name'] }}" 
+               data-desc="{{ item['description'] }}" 
+               data-location="{{ item['location'] }}">
+            <a href="/item/lost/{{ item['id'] }}" class="item-card-link">
+              <article class="item-card" aria-label="Lost item: {{ item['name'] }}">
+                <div class="card-punch-hole" title="Claim ticket"></div>
+                
+                <div class="card-image-wrap">
+                  {% if item['image'] %}
+                    <img src="{{ url_for('uploaded_file', filename=item['image']) }}" alt="{{ item['name'] }}" loading="lazy">
+                  {% else %}
+                    <div class="no-image-placeholder">
+                      <i class="fa-solid fa-magnifying-glass"></i>
+                      <span>No image uploaded</span>
+                    </div>
+                  {% endif %}
+
+                  <div class="card-badges">
+                    <span class="status-stamp status-lost"><i class="fa-solid fa-circle-exclamation"></i> Lost</span>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <div class="card-meta-top">
+                    <span class="card-category-tag">
+                      <i class="fa-solid fa-tag"></i> {{ item['category'] }}
+                    </span>
+                    <span class="card-report-id">#L-{{ item['id'] }}</span>
+                  </div>
+
+                  <h3>{{ item['name'] }}</h3>
+                  <p class="card-desc">{{ item['description'] }}</p>
+
+                  <div class="card-info-rows">
+                    <div class="info-row" title="Last seen location">
+                      <i class="fa-solid fa-location-dot"></i>
+                      <span>{{ item['location'] }}</span>
+                    </div>
+                    <div class="info-row" title="Date reported">
+                      <i class="fa-regular fa-clock"></i>
+                      <span>{{ item['date_reported'] }}</span>
+                    </div>
+                  </div>
+
+                  <div class="card-footer-action">
+                    <span>View Details &amp; Matches</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </div>
+                </div>
+              </article>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state-box" style="padding:32px 20px;">
+        <div class="empty-icon-wrap" style="color:var(--status-lost);"><i class="fa-solid fa-circle-check"></i></div>
+        <h3>No active lost reports</h3>
+        <p>No missing items currently reported. You can submit a new report if you lost something.</p>
+        <a href="/add-lost" class="btn btn-danger btn-sm" style="margin-top:10px;">Report Lost Item</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- SECTION 2: AVAILABLE FOUND ITEMS (SEPARATE) -->
+<section class="section-wrap list-view-section" id="found-section" style="padding-top:20px;padding-bottom:60px;">
+  <div class="container">
+    <div class="section-head" style="border-left:4px solid var(--status-found);padding-left:14px;margin-bottom:24px;">
+      <div>
+        <p class="section-tag" style="color:var(--status-found);"><i class="fa-solid fa-box-archive"></i> FOUND &amp; WAITING FOR OWNER</p>
+        <h2 style="font-size:24px;">Available Found Items <span style="font-size:16px;font-weight:600;color:var(--text-muted);margin-left:6px;">({{ found_items|length }} active)</span></h2>
+        <p class="muted" style="margin-top:4px;">Items turned in by finders waiting to be claimed by their rightful owners.</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;">
+        <a href="/add-found" class="btn btn-success btn-sm">
+          <i class="fa-solid fa-plus"></i> Report Found Item
+        </a>
+      </div>
+    </div>
+
+    {% if found_items %}
+      <div class="items-grid" id="found-items-grid">
+        {% for item in found_items %}
+          <div class="filterable-item" 
+               data-type="found" 
+               data-status="{{ item['status']|lower }}" 
+               data-category="{{ item['category'] }}" 
+               data-name="{{ item['name'] }}" 
+               data-desc="{{ item['description'] }}" 
+               data-location="{{ item['location'] }}">
+            <a href="/item/found/{{ item['id'] }}" class="item-card-link">
+              <article class="item-card" aria-label="Found item: {{ item['name'] }}">
+                <div class="card-punch-hole" title="Claim ticket"></div>
+                
+                <div class="card-image-wrap">
+                  {% if item['image'] %}
+                    <img src="{{ url_for('uploaded_file', filename=item['image']) }}" alt="{{ item['name'] }}" loading="lazy">
+                  {% else %}
+                    <div class="no-image-placeholder">
+                      <i class="fa-solid fa-box-open"></i>
+                      <span>No image uploaded</span>
+                    </div>
+                  {% endif %}
+
+                  <div class="card-badges">
+                    <span class="status-stamp status-found"><i class="fa-solid fa-box-archive"></i> Found</span>
+                  </div>
+                </div>
+
+                <div class="card-body">
+                  <div class="card-meta-top">
+                    <span class="card-category-tag">
+                      <i class="fa-solid fa-tag"></i> {{ item['category'] }}
+                    </span>
+                    <span class="card-report-id">#F-{{ item['id'] }}</span>
+                  </div>
+
+                  <h3>{{ item['name'] }}</h3>
+                  <p class="card-desc">{{ item['description'] }}</p>
+
+                  <div class="card-info-rows">
+                    <div class="info-row" title="Found location">
+                      <i class="fa-solid fa-location-dot"></i>
+                      <span>{{ item['location'] }}</span>
+                    </div>
+                    <div class="info-row" title="Date reported">
+                      <i class="fa-regular fa-clock"></i>
+                      <span>{{ item['date_reported'] }}</span>
+                    </div>
+                  </div>
+
+                  <div class="card-footer-action">
+                    <span>View Details &amp; Contact</span>
+                    <i class="fa-solid fa-arrow-right"></i>
+                  </div>
+                </div>
+              </article>
+            </a>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="empty-state-box" style="padding:32px 20px;">
+        <div class="empty-icon-wrap" style="color:var(--status-found);"><i class="fa-solid fa-inbox"></i></div>
+        <h3>No active found reports</h3>
+        <p>No found items waiting to be claimed right now. Have you found something? Let the owner know!</p>
+        <a href="/add-found" class="btn btn-success btn-sm" style="margin-top:10px;">Report Found Item</a>
+      </div>
+    {% endif %}
+  </div>
+</section>
+
+<!-- SECTION 3: RECLAIMED HISTORY & SUCCESS STORIES TEASER -->
+<section class="section-wrap" style="padding-top:0;padding-bottom:60px;">
+  <div class="container">
+    <div style="background:var(--bg-surface);border:1.5px solid var(--border-subtle);border-radius:var(--radius-xl);padding:32px 36px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:20px;box-shadow:var(--shadow-sm);">
+      <div style="display:flex;align-items:center;gap:18px;">
+        <div style="width:54px;height:54px;border-radius:50%;background:var(--status-found-bg);color:var(--status-found);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;">
+          <i class="fa-solid fa-handshake-angle"></i>
+        </div>
+        <div>
+          <h3 style="font-size:20px;margin-bottom:4px;">{{ stats.recovered }} Items Successfully Reconnected!</h3>
+          <p class="muted" style="margin:0;font-size:14px;">
+            Returned and resolved items are safely preserved in our Reclaimed Archive.
+          </p>
+        </div>
+      </div>
+      <div>
+        <a href="/reclaimed" class="btn btn-secondary" style="font-weight:700;">
+          <i class="fa-solid fa-clock-rotate-left"></i> View Reclaimed Archive ({{ stats.recovered }}) →
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const btnGrid = document.getElementById("btn-view-grid");
+  const btnMap = document.getElementById("btn-view-map");
+  const mapSection = document.getElementById("map-view-section");
+  const listSections = document.querySelectorAll(".list-view-section");
+  const emptyContainer = document.getElementById("live-empty-container");
+
+  let exploreMap = null;
+  let markersLayer = null;
+  let mapInitialized = false;
+
+  function initExploreMap() {
+    if (mapInitialized) return;
+    mapInitialized = true;
+
+    exploreMap = L.map("explore-map", {
+      center: [40.7128, -74.0060],
+      zoom: 16,
+      zoomControl: true
+    });
+
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(exploreMap);
+
+    markersLayer = L.layerGroup().addTo(exploreMap);
+    loadMapMarkers();
+  }
+
+  function loadMapMarkers() {
+    if (!exploreMap || !markersLayer) return;
+    const activeTab = (document.querySelector(".tab-btn.active")?.dataset.tab) || "all";
+    const activeCat = (document.querySelector(".chip.active")?.dataset.category) || "all";
+
+    fetch(`/api/map/items?type=${activeTab}&category=${activeCat}`)
+      .then(res => res.json())
+      .then(data => {
+        markersLayer.clearLayers();
+        const bounds = [];
+
+        data.items.forEach(item => {
+          const isLost = item.type === "lost";
+          const iconHtml = `<div class="custom-map-pin ${isLost ? 'lost' : 'found'}">
+            <i class="fa-solid ${isLost ? 'fa-magnifying-glass' : 'fa-box-open'}"></i>
+          </div>`;
+
+          const customIcon = L.divIcon({
+            html: iconHtml,
+            className: "custom-leaflet-pin",
+            iconSize: [32, 32],
+            iconAnchor: [16, 16],
+            popupAnchor: [0, -18]
+          });
+
+          const popupContent = `
+            <div class="map-popup-card">
+              <div class="map-popup-img-wrap">
+                ${item.image ? `<img src="${item.image}" alt="${item.name}">` : `<i class="fa-solid ${isLost ? 'fa-magnifying-glass' : 'fa-box-open'}" style="font-size:32px;color:var(--text-subtle);"></i>`}
+                <span class="map-popup-badge ${isLost ? 'lost' : 'found'}">${isLost ? 'Lost' : 'Found'}</span>
+              </div>
+              <div class="map-popup-body">
+                <h4>${item.name}</h4>
+                <div class="map-popup-location">
+                  <i class="fa-solid fa-location-dot"></i> ${item.location}
+                </div>
+                <a href="${item.url}" class="btn ${isLost ? 'btn-danger' : 'btn-success'} btn-sm" style="width:100%;font-size:12px;padding:5px 8px;">
+                  View Listing Details &rarr;
+                </a>
+              </div>
+            </div>
+          `;
+
+          const marker = L.marker([item.lat, item.lng], { icon: customIcon })
+            .bindPopup(popupContent);
+          markersLayer.addLayer(marker);
+          bounds.push([item.lat, item.lng]);
+        });
+
+        if (bounds.length > 0) {
+          exploreMap.fitBounds(bounds, { padding: [40, 40], maxZoom: 17 });
+        }
+      })
+      .catch(err => console.error("Error loading map items:", err));
+  }
+
+  // Toggle buttons
+  if (btnGrid && btnMap && mapSection) {
+    btnMap.addEventListener("click", function () {
+      btnMap.classList.add("active");
+      btnMap.classList.remove("btn-ghost");
+      btnGrid.classList.remove("active");
+      btnGrid.classList.add("btn-ghost");
+
+      mapSection.style.display = "block";
+      listSections.forEach(s => s.style.display = "none");
+      if (emptyContainer) emptyContainer.style.display = "none";
+
+      initExploreMap();
+      setTimeout(() => {
+        exploreMap.invalidateSize();
+        loadMapMarkers();
+      }, 100);
+    });
+
+    btnGrid.addEventListener("click", function () {
+      btnGrid.classList.add("active");
+      btnGrid.classList.remove("btn-ghost");
+      btnMap.classList.remove("btn-ghost");
+      btnMap.classList.remove("active");
+
+      mapSection.style.display = "none";
+      listSections.forEach(s => s.style.display = "");
+      if (emptyContainer) emptyContainer.style.display = "";
+    });
+  }
+
+  // Locate Me User Geolocation Handler
+  const btnLocateMe = document.getElementById("btn-map-locate-me");
+  let userLocationMarker = null;
+
+  if (btnLocateMe) {
+    btnLocateMe.addEventListener("click", function () {
+      if (!navigator.geolocation) {
+        alert("Geolocation is not supported by your browser.");
+        return;
+      }
+      btnLocateMe.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> Locating...`;
+      btnLocateMe.disabled = true;
+
+      navigator.geolocation.getCurrentPosition(
+        function (pos) {
+          btnLocateMe.innerHTML = `<i class="fa-solid fa-crosshairs"></i> Located`;
+          btnLocateMe.disabled = false;
+          const uLat = pos.coords.latitude;
+          const uLng = pos.coords.longitude;
+
+          if (userLocationMarker) {
+            exploreMap.removeLayer(userLocationMarker);
+          }
+
+          const userIcon = L.divIcon({
+            html: `<div style="width:20px;height:20px;border-radius:50%;background:#3b82f6;border:3px solid #fff;box-shadow:0 0 12px rgba(59,130,246,0.8);animation:pulse 1.5s infinite;"></div>`,
+            className: "user-loc-pin",
+            iconSize: [20, 20],
+            iconAnchor: [10, 10]
+          });
+
+          userLocationMarker = L.marker([uLat, uLng], { icon: userIcon })
+            .addTo(exploreMap)
+            .bindPopup("<strong>📍 You Are Here</strong><br><span style='font-size:12px;color:gray;'>Scanning nearby lost & found items...</span>")
+            .openPopup();
+
+          exploreMap.setView([uLat, uLng], 17, { animate: true });
+        },
+        function (err) {
+          btnLocateMe.innerHTML = `<i class="fa-solid fa-crosshairs"></i> Locate Me`;
+          btnLocateMe.disabled = false;
+          alert("Unable to get current location. Please allow browser location access.");
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+      );
+    });
+  }
+
+  // Listen to filter tab and category chip clicks to update map markers
+  document.querySelectorAll(".tab-btn, .chip").forEach(el => {
+    el.addEventListener("click", function () {
+      if (mapInitialized && mapSection && mapSection.style.display !== "none") {
+        setTimeout(loadMapMarkers, 50);
+      }
+    });
+  });
+});
+</script>
+{% endblock %}

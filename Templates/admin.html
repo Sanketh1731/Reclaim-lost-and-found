@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Admin Console | ReClaim{% endblock %}
+
+{% block content %}
+<div class="section-wrap">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <p class="section-tag" style="color:var(--status-match);"><i class="fa-solid fa-shield-halved"></i> ADMINISTRATION</p>
+        <h1>Platform Overview</h1>
+        <p class="muted">Monitor platform activity, manage registered accounts, and moderate listings.</p>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/admin/users" class="btn btn-secondary">
+          <i class="fa-solid fa-users"></i> Manage Users
+        </a>
+        <a href="/admin/reports" class="btn btn-secondary">
+          <i class="fa-solid fa-list-check"></i> Manage Reports
+        </a>
+      </div>
+    </div>
+
+    <!-- Admin Metric Cards -->
+    <div class="dashboard-metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon-wrap lost"><i class="fa-solid fa-magnifying-glass"></i></div>
+        <div class="metric-info">
+          <strong>{{ stats.lost }}</strong>
+          <span>Total Lost Reports</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap found"><i class="fa-solid fa-box-open"></i></div>
+        <div class="metric-info">
+          <strong>{{ stats.found }}</strong>
+          <span>Total Found Reports</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap resolved"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="metric-info">
+          <strong>{{ stats.resolved }}</strong>
+          <span>Items Reclaimed</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap reputation" style="background:{% if stats.flags > 0 %}var(--danger-bg){% else %}var(--status-match-bg){% endif %};color:{% if stats.flags > 0 %}var(--danger){% else %}var(--status-match){% endif %};">
+          <i class="fa-solid fa-flag"></i>
+        </div>
+        <div class="metric-info">
+          <strong style="color:{% if stats.flags > 0 %}var(--danger){% else %}var(--text-main){% endif %};">{{ stats.flags }}</strong>
+          <span>Open Flags &amp; Reports</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- MODERATION & FLAGGED LISTINGS -->
+    {% if open_flags %}
+      <div class="form-card-container" style="padding:24px;margin:24px 0 0;max-width:none;border-color:var(--danger-border);background:var(--bg-surface);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+          <h3 style="font-size:18px;margin:0;color:var(--danger);display:flex;align-items:center;gap:8px;">
+            <i class="fa-solid fa-triangle-exclamation"></i> Flagged Listings Requiring Review ({{ open_flags|length }})
+          </h3>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          {% for f in open_flags %}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;background:var(--bg-surface-subtle);border-radius:var(--radius-sm);border:1px solid var(--border-subtle);flex-wrap:wrap;gap:12px;">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                  <span class="status-stamp status-lost" style="font-size:11px;">{{ f['reason'] }}</span>
+                  <strong>Listing #{{ 'L' if f['item_type']=='lost' else 'F' }}-{{ f['item_id'] }}</strong>
+                </div>
+                <p style="margin:0;font-size:13px;color:var(--text-main);">
+                  Reported by <strong>{{ f['reporter_name'] }}</strong> on {{ f['date_reported'] }}
+                  {% if f['details'] %}&mdash; <em>"{{ f['details'] }}"</em>{% endif %}
+                </p>
+              </div>
+
+              <div style="display:flex;gap:8px;">
+                <a href="/item/{{ f['item_type'] }}/{{ f['item_id'] }}" class="btn btn-ghost btn-sm" target="_blank">
+                  <i class="fa-solid fa-eye"></i> Inspect
+                </a>
+                <form method="POST" action="/admin/flag/{{ f['id'] }}/dismiss">
+                  <button type="submit" class="btn btn-secondary btn-sm" title="Dismiss Flag">
+                    <i class="fa-solid fa-check"></i> Dismiss
+                  </button>
+                </form>
+                <form method="POST" action="/admin/flag/{{ f['id'] }}/delete_item" data-confirm="Are you sure you want to delete this flagged listing?" data-confirm-title="Delete Flagged Item">
+                  <button type="submit" class="btn btn-danger btn-sm" title="Delete Listing">
+                    <i class="fa-solid fa-trash"></i> Delete Item
+                  </button>
+                </form>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Recent Submissions Overview -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:24px;margin-top:24px;">
+      <!-- Recent Lost -->
+      <div class="form-card-container" style="padding:24px;margin:0;max-width:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h3 style="font-size:18px;"><i class="fa-solid fa-magnifying-glass" style="color:var(--status-lost);"></i> Recent Lost Items</h3>
+          <a href="/admin/reports" class="small subtle">View all &rarr;</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          {% for r in recent_lost %}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-surface-subtle);border-radius:var(--radius-sm);font-size:13.5px;">
+              <div>
+                <strong>#L-{{ r['id'] }} {{ r['name'] }}</strong>
+                <span class="muted" style="display:block;font-size:12px;">{{ r['category'] }} · {{ r['location'] }}</span>
+              </div>
+              <a href="/item/lost/{{ r['id'] }}" class="btn btn-ghost btn-sm">View</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Recent Found -->
+      <div class="form-card-container" style="padding:24px;margin:0;max-width:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <h3 style="font-size:18px;"><i class="fa-solid fa-box-open" style="color:var(--status-found);"></i> Recent Found Items</h3>
+          <a href="/admin/reports" class="small subtle">View all &rarr;</a>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          {% for r in recent_found %}
+            <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:var(--bg-surface-subtle);border-radius:var(--radius-sm);font-size:13.5px;">
+              <div>
+                <strong>#F-{{ r['id'] }} {{ r['name'] }}</strong>
+                <span class="muted" style="display:block;font-size:12px;">{{ r['category'] }} · {{ r['location'] }}</span>
+              </div>
+              <a href="/item/found/{{ r['id'] }}" class="btn btn-ghost btn-sm">View</a>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

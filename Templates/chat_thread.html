@@ -1,0 +1,246 @@
+{% extends "base.html" %}
+{% block title %}Chat with {{ other_user['name'] }} — {{ item['name'] }} | ReClaim{% endblock %}
+
+{% block content %}
+<div class="chat-page-wrap" style="padding:24px 0 40px;">
+  <div class="container" style="max-width:880px;">
+    <!-- Top Back Link & Item Ribbon -->
+    <div style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;">
+      <a href="/messages" class="btn btn-ghost btn-sm">
+        <i class="fa-solid fa-arrow-left"></i> Back to Messages Inbox
+      </a>
+      <a href="/item/{{ item_type }}/{{ item['id'] }}" class="btn btn-ghost btn-sm" target="_blank">
+        <i class="fa-solid fa-arrow-up-right-from-square"></i> View Original Listing #{{ 'L' if item_type=='lost' else 'F' }}-{{ item['id'] }}
+      </a>
+    </div>
+
+    <div class="chat-room-card" style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-md);display:flex;flex-direction:column;min-height:580px;">
+      
+      <!-- CHAT HEADER: ITEM SNAPSHOT -->
+      <div class="chat-header" style="padding:14px 20px;background:var(--bg-surface-subtle);border-bottom:1px solid var(--border-subtle);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <!-- Item Thumbnail -->
+          <div style="width:44px;height:44px;border-radius:var(--radius-sm);overflow:hidden;background:var(--bg-surface);border:1px solid var(--border-subtle);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+            {% if item['image'] %}
+              <img src="{{ url_for('uploaded_file', filename=item['image']) }}" alt="{{ item['name'] }}" style="width:100%;height:100%;object-fit:cover;">
+            {% else %}
+              <i class="fa-solid {% if item_type == 'lost' %}fa-magnifying-glass{% else %}fa-box-open{% endif %}" style="font-size:18px;color:var(--text-subtle);"></i>
+            {% endif %}
+          </div>
+
+          <div>
+            <div style="display:flex;align-items:center;gap:6px;">
+              <strong style="font-size:15px;color:var(--text-main);">{{ item['name'] }}</strong>
+              <span class="status-stamp {% if item_type == 'lost' %}status-lost{% else %}status-found{% endif %}" style="font-size:10px;padding:1px 6px;">
+                {{ 'LOST' if item_type == 'lost' else 'FOUND' }}
+              </span>
+            </div>
+            <span class="muted" style="font-size:12px;">Chatting with <strong>{{ other_user['name'] }}</strong> ({{ other_user['reputation'] }} reputation points)</span>
+          </div>
+        </div>
+
+        <div>
+          {% if is_owner and item['status'] == 'Active' %}
+            <form method="POST" action="/item/{{ item_type }}/{{ item['id'] }}/returned" data-confirm="Has this item been safely returned to its rightful owner? Marking it as returned will award you +15 reputation points!" data-confirm-title="Mark as Returned">
+              <button type="submit" class="btn btn-success btn-sm">
+                <i class="fa-solid fa-circle-check"></i> Mark Returned (+15 Rep)
+              </button>
+            </form>
+          {% elif item['status'] == 'Returned' %}
+            <span class="status-stamp status-returned" style="font-size:11px;"><i class="fa-solid fa-circle-check"></i> Returned / Resolved</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- SAFE MEETUP NOTICE -->
+      <div style="background:var(--status-match-bg);border-bottom:1px solid var(--status-match-border);padding:9px 18px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--status-match);">
+        <i class="fa-solid fa-shield-halved" style="font-size:14px;flex-shrink:0;"></i>
+        <span><strong>Campus Safety Advisory:</strong> Meet in well-lit public areas (e.g. Central Library Front Desk, Student Union, or Campus Security Office). Never share banking details or OTPs.</span>
+      </div>
+
+      <!-- CHAT MESSAGE BUBBLE FEED -->
+      <div id="chat-feed" style="flex:1;padding:20px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;max-height:420px;background:var(--bg-surface);">
+        {% if messages %}
+          {% for m in messages %}
+            {% if m['sender_id'] == session['user_id'] %}
+              <!-- SELF MESSAGE (RIGHT) -->
+              <div class="chat-bubble-row self" style="display:flex;justify-content:flex-end;" data-msg-id="{{ m['id'] }}">
+                <div style="max-width:75%;background:linear-gradient(135deg, var(--primary), var(--primary-hover));color:#fff;padding:10px 14px;border-radius:18px 18px 4px 18px;box-shadow:var(--shadow-sm);">
+                  <p style="margin:0;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;">{{ m['message'] }}</p>
+                  <span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.8);text-align:right;margin-top:4px;">{{ m['timestamp'] }}</span>
+                </div>
+              </div>
+            {% else %}
+              <!-- OTHER MESSAGE (LEFT) -->
+              <div class="chat-bubble-row other" style="display:flex;justify-content:flex-start;gap:8px;align-items:flex-end;" data-msg-id="{{ m['id'] }}">
+                <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;margin-bottom:2px;">
+                  {{ other_user['name'][:1]|upper }}
+                </div>
+                <div style="max-width:75%;background:var(--bg-surface-subtle);color:var(--text-main);border:1px solid var(--border-subtle);padding:10px 14px;border-radius:18px 18px 18px 4px;box-shadow:var(--shadow-xs);">
+                  <p style="margin:0;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;">{{ m['message'] }}</p>
+                  <span style="display:block;font-size:10.5px;color:var(--text-muted);margin-top:4px;">{{ m['timestamp'] }}</span>
+                </div>
+              </div>
+            {% endif %}
+          {% endfor %}
+        {% else %}
+          <div id="chat-empty-hint" style="text-align:center;padding:40px 10px;color:var(--text-muted);">
+            <div style="width:48px;height:48px;border-radius:50%;background:var(--bg-surface-subtle);margin:0 auto 10px;display:flex;align-items:center;justify-content:center;color:var(--primary);font-size:20px;">
+              <i class="fa-solid fa-paper-plane"></i>
+            </div>
+            <strong style="font-size:15px;color:var(--text-main);display:block;margin-bottom:4px;">Start the Conversation</strong>
+            <p style="font-size:13px;margin:0;">Coordinate a safe meetup or ask questions to verify item details.</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- QUICK REPLY PRESET CHIPS -->
+      <div class="chat-quick-replies" style="padding:8px 16px;background:var(--bg-surface-subtle);border-top:1px solid var(--border-subtle);display:flex;gap:6px;overflow-x:auto;white-space:nowrap;">
+        <button type="button" class="preset-chip chat-preset" data-msg="Hi! Is this item still available?">👋 Still available?</button>
+        <button type="button" class="preset-chip chat-preset" data-msg="Can we meet at the Central Library desk?">🏛️ Meet at Library</button>
+        <button type="button" class="preset-chip chat-preset" data-msg="I am free this afternoon to meet.">🕒 Free this afternoon</button>
+        <button type="button" class="preset-chip chat-preset" data-msg="Thank you so much for your help!">🙌 Thank you!</button>
+      </div>
+
+      <!-- CHAT INPUT FORM -->
+      <form id="chat-form" style="padding:14px 16px;background:var(--bg-surface);border-top:1px solid var(--border-subtle);display:flex;gap:10px;align-items:center;">
+        <div style="flex:1;position:relative;">
+          <input type="text" id="chat-input" placeholder="Type your message here... (Press Enter to send)" autocomplete="off" style="width:100%;border-radius:var(--radius-full);padding:11px 18px;border:1.5px solid var(--border-subtle);background:var(--bg-surface-subtle);font-size:14px;color:var(--text-main);" required>
+        </div>
+        <button type="submit" id="btn-chat-send" class="btn btn-primary" style="border-radius:var(--radius-full);padding:11px 20px;font-weight:700;display:inline-flex;align-items:center;gap:6px;">
+          <span>Send</span>
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
+      </form>
+
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const chatFeed = document.getElementById("chat-feed");
+  const chatForm = document.getElementById("chat-form");
+  const chatInput = document.getElementById("chat-input");
+  const btnSend = document.getElementById("btn-chat-send");
+  const emptyHint = document.getElementById("chat-empty-hint");
+
+  const itemType = "{{ item_type }}";
+  const itemId = "{{ item['id'] }}";
+  const otherUserId = "{{ other_user['id'] }}";
+  const otherInitial = "{{ other_user['name'][:1]|upper }}";
+
+  function scrollToBottom() {
+    if (chatFeed) {
+      chatFeed.scrollTop = chatFeed.scrollHeight;
+    }
+  }
+  scrollToBottom();
+
+  function getLastMsgId() {
+    const rows = document.querySelectorAll(".chat-bubble-row");
+    if (rows.length === 0) return 0;
+    const lastRow = rows[rows.length - 1];
+    return parseInt(lastRow.dataset.msgId || "0", 10);
+  }
+
+  // Quick reply chip click
+  document.querySelectorAll(".chat-preset").forEach(chip => {
+    chip.addEventListener("click", function () {
+      chatInput.value = chip.dataset.msg;
+      chatInput.focus();
+    });
+  });
+
+  // Append new message bubble
+  function appendMessage(msg) {
+    if (emptyHint) emptyHint.style.display = "none";
+
+    const row = document.createElement("div");
+    row.className = `chat-bubble-row ${msg.is_self ? 'self' : 'other'}`;
+    row.dataset.msgId = msg.id;
+
+    if (msg.is_self) {
+      row.style.cssText = "display:flex;justify-content:flex-end;";
+      row.innerHTML = `
+        <div style="max-width:75%;background:linear-gradient(135deg, var(--primary), var(--primary-hover));color:#fff;padding:10px 14px;border-radius:18px 18px 4px 18px;box-shadow:var(--shadow-sm);">
+          <p style="margin:0;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;">${escapeHtml(msg.message)}</p>
+          <span style="display:block;font-size:10.5px;color:rgba(255,255,255,0.8);text-align:right;margin-top:4px;">${msg.timestamp}</span>
+        </div>
+      `;
+    } else {
+      row.style.cssText = "display:flex;justify-content:flex-start;gap:8px;align-items:flex-end;";
+      row.innerHTML = `
+        <div class="user-avatar" style="width:28px;height:28px;font-size:11px;flex-shrink:0;margin-bottom:2px;">
+          ${otherInitial}
+        </div>
+        <div style="max-width:75%;background:var(--bg-surface-subtle);color:var(--text-main);border:1px solid var(--border-subtle);padding:10px 14px;border-radius:18px 18px 18px 4px;box-shadow:var(--shadow-xs);">
+          <p style="margin:0;font-size:14px;line-height:1.4;white-space:pre-wrap;word-break:break-word;">${escapeHtml(msg.message)}</p>
+          <span style="display:block;font-size:10.5px;color:var(--text-muted);margin-top:4px;">${msg.timestamp}</span>
+        </div>
+      `;
+    }
+    chatFeed.appendChild(row);
+    scrollToBottom();
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement("div");
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  // Handle form send
+  if (chatForm) {
+    chatForm.addEventListener("submit", function (e) {
+      e.preventDefault();
+      const text = chatInput.value.trim();
+      if (!text) return;
+
+      chatInput.disabled = true;
+      btnSend.disabled = true;
+
+      const formData = new FormData();
+      formData.append("message", text);
+
+      fetch(`/api/messages/${itemType}/${itemId}/${otherUserId}/send`, {
+        method: "POST",
+        body: formData
+      })
+      .then(res => res.json())
+      .then(data => {
+        chatInput.disabled = false;
+        btnSend.disabled = false;
+        if (data.success) {
+          appendMessage(data.message);
+          chatInput.value = "";
+          chatInput.focus();
+        } else {
+          alert(data.error || "Failed to send message.");
+        }
+      })
+      .catch(err => {
+        chatInput.disabled = false;
+        btnSend.disabled = false;
+        console.error("Chat send error:", err);
+      });
+    });
+  }
+
+  // Live polling every 3 seconds for new incoming messages
+  setInterval(function () {
+    const afterId = getLastMsgId();
+    fetch(`/api/messages/${itemType}/${itemId}/${otherUserId}/poll?after_id=${afterId}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.messages && data.messages.length > 0) {
+          data.messages.forEach(m => appendMessage(m));
+        }
+      })
+      .catch(err => console.error("Poll error:", err));
+  }, 3000);
+});
+</script>
+{% endblock %}

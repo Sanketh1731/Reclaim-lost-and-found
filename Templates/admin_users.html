@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Manage Users — Admin | ReClaim{% endblock %}
+
+{% block content %}
+<div class="section-wrap">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <a href="/admin" class="btn btn-ghost btn-sm" style="margin-bottom:10px;">
+          <i class="fa-solid fa-arrow-left"></i> Back to Admin Overview
+        </a>
+        <h1>User Account Management</h1>
+        <p class="muted">View registered accounts, reputation points, and manage admin privileges.</p>
+      </div>
+    </div>
+
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>User ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Reputation</th>
+            <th>Reports</th>
+            <th>Returned</th>
+            <th>Date Joined</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+            <tr>
+              <td><strong>#U-{{ u['id'] }}</strong></td>
+              <td>
+                <div style="display:flex;align-items:center;gap:8px;">
+                  <div class="user-avatar" style="width:26px;height:26px;font-size:11px;">{{ u['name'][:1]|upper }}</div>
+                  <span>{{ u['name'] }}</span>
+                </div>
+              </td>
+              <td>{{ u['email'] }}</td>
+              <td>
+                {% if u['is_admin'] == 1 %}
+                  <span class="status-stamp" style="background:var(--status-match-bg);color:var(--status-match);border-color:var(--status-match-border);">ADMIN</span>
+                {% else %}
+                  <span class="status-stamp" style="background:var(--bg-surface-subtle);color:var(--text-muted);border-color:var(--border-subtle);">MEMBER</span>
+                {% endif %}
+              </td>
+              <td><strong style="color:var(--status-match);">{{ u['reputation'] or 0 }} pts</strong></td>
+              <td>{{ u['reports_count'] or 0 }}</td>
+              <td>{{ u['returned_count'] or 0 }}</td>
+              <td>{{ u['date_joined'] }}</td>
+              <td>
+                <form method="POST" action="/admin/user/{{ u['id'] }}/toggle_admin" data-confirm="Are you sure you want to {{ 'revoke' if u['is_admin'] == 1 else 'grant' }} admin privileges for {{ u['name'] }}?" data-confirm-title="Change Admin Role" style="display:inline;">
+                  <button type="submit" class="btn btn-secondary btn-sm">
+                    <i class="fa-solid fa-shield-halved"></i> {{ 'Revoke Admin' if u['is_admin'] == 1 else 'Make Admin' }}
+                  </button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

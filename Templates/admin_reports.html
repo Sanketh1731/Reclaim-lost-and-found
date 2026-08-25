@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Manage Reports — Admin | ReClaim{% endblock %}
+
+{% block content %}
+<div class="section-wrap">
+  <div class="container">
+    <div class="section-head">
+      <div>
+        <a href="/admin" class="btn btn-ghost btn-sm" style="margin-bottom:10px;">
+          <i class="fa-solid fa-arrow-left"></i> Back to Admin Overview
+        </a>
+        <h1>Report Moderation</h1>
+        <p class="muted">Review and delete active or flagged listings.</p>
+      </div>
+    </div>
+
+    <!-- LOST REPORTS TABLE -->
+    <h3 style="margin:24px 0 12px;font-size:20px;">
+      <i class="fa-solid fa-magnifying-glass" style="color:var(--status-lost);"></i> Lost Item Listings ({{ lost|length }})
+    </h3>
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th>Reported Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in lost %}
+            <tr>
+              <td><strong>#L-{{ r['id'] }}</strong></td>
+              <td>{{ r['name'] }}</td>
+              <td><span class="card-category-tag">{{ r['category'] }}</span></td>
+              <td>{{ r['location'] }}</td>
+              <td>{{ r['date_reported'] }}</td>
+              <td>
+                <span class="status-stamp {% if r['status'] == 'Returned' %}status-returned{% else %}status-lost{% endif %}">
+                  {{ r['status'] }}
+                </span>
+              </td>
+              <td>
+                <div style="display:flex;gap:6px;">
+                  <a href="/item/lost/{{ r['id'] }}" class="btn btn-ghost btn-sm">View</a>
+                  <form method="POST" action="/admin/report/lost/{{ r['id'] }}/delete" data-confirm="Delete lost report #L-{{ r['id'] }}?" data-confirm-title="Admin Delete" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- FOUND REPORTS TABLE -->
+    <h3 style="margin:36px 0 12px;font-size:20px;">
+      <i class="fa-solid fa-box-open" style="color:var(--status-found);"></i> Found Item Listings ({{ found|length }})
+    </h3>
+    <div class="admin-table-container">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th>Location</th>
+            <th>Reported Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in found %}
+            <tr>
+              <td><strong>#F-{{ r['id'] }}</strong></td>
+              <td>{{ r['name'] }}</td>
+              <td><span class="card-category-tag">{{ r['category'] }}</span></td>
+              <td>{{ r['location'] }}</td>
+              <td>{{ r['date_reported'] }}</td>
+              <td>
+                <span class="status-stamp {% if r['status'] == 'Returned' %}status-returned{% else %}status-found{% endif %}">
+                  {{ r['status'] }}
+                </span>
+              </td>
+              <td>
+                <div style="display:flex;gap:6px;">
+                  <a href="/item/found/{{ r['id'] }}" class="btn btn-ghost btn-sm">View</a>
+                  <form method="POST" action="/admin/report/found/{{ r['id'] }}/delete" data-confirm="Delete found report #F-{{ r['id'] }}?" data-confirm-title="Admin Delete" style="display:inline;">
+                    <button type="submit" class="btn btn-danger btn-sm"><i class="fa-solid fa-trash"></i></button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

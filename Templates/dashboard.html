@@ -1,0 +1,251 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard | ReClaim{% endblock %}
+
+{% block content %}
+<div class="section-wrap">
+  <div class="container">
+    <!-- Dashboard Header Banner -->
+    <div class="section-head">
+      <div>
+        <p class="section-tag"><i class="fa-solid fa-user-circle"></i> USER DASHBOARD</p>
+        <h1>Welcome, {{ session.get('user_name', 'User') }}</h1>
+        <p class="muted">Manage your active lost and found reports and track returned items.</p>
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a href="/add-lost" class="btn btn-danger">
+          <i class="fa-solid fa-magnifying-glass-location"></i> + Report Lost Item
+        </a>
+        <a href="/add-found" class="btn btn-success">
+          <i class="fa-solid fa-circle-plus"></i> + Report Found Item
+        </a>
+      </div>
+    </div>
+
+    <!-- User Metrics Grid -->
+    <div class="dashboard-metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon-wrap lost"><i class="fa-solid fa-magnifying-glass"></i></div>
+        <div class="metric-info">
+          <strong>{{ stats.active_lost }}</strong>
+          <span>Active Lost Reports</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap found"><i class="fa-solid fa-box-open"></i></div>
+        <div class="metric-info">
+          <strong>{{ stats.active_found }}</strong>
+          <span>Active Found Reports</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap resolved"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="metric-info">
+          <strong>{{ stats.resolved }}</strong>
+          <span>Items Reclaimed</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap reputation"><i class="fa-solid fa-award"></i></div>
+        <div class="metric-info">
+          <strong>{{ stats.reputation }} pts</strong>
+          <span>Reputation Score</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Segmented Tab Navigation -->
+    <div style="margin-bottom:24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;">
+      <div class="tab-group" role="tablist">
+        <button type="button" class="tab-btn active" data-tab="all">All My Reports ({{ stats.total }})</button>
+        <button type="button" class="tab-btn" data-tab="lost" style="color:var(--status-lost);">Active Lost ({{ stats.active_lost }})</button>
+        <button type="button" class="tab-btn" data-tab="found" style="color:var(--status-found);">Active Found ({{ stats.active_found }})</button>
+        <button type="button" class="tab-btn" data-tab="returned" style="color:var(--status-returned);">Reclaimed Archive ({{ stats.resolved }})</button>
+      </div>
+
+      <div style="font-size:13px;color:var(--text-muted);">
+        <i class="fa-solid fa-shield-halved"></i> Only you can edit or manage your reported items.
+      </div>
+    </div>
+
+    <!-- Empty State for Empty Dashboard -->
+    {% if not lost_items and not found_items %}
+      <div class="empty-state-box">
+        <div class="empty-icon-wrap"><i class="fa-solid fa-inbox"></i></div>
+        <h3>You haven't reported any items yet</h3>
+        <p>Start by submitting a report for something you've lost or found in your campus or local area.</p>
+        <div style="display:flex;gap:12px;justify-content:center;margin-top:10px;">
+          <a href="/add-lost" class="btn btn-danger">Report Lost Item</a>
+          <a href="/add-found" class="btn btn-success">Report Found Item</a>
+        </div>
+      </div>
+    {% else %}
+      <!-- SECTION 1: MY LOST REPORTS -->
+      <div id="lost-section" style="margin-bottom:40px;">
+        <div class="section-head" style="border-left:4px solid var(--status-lost);padding-left:14px;margin-bottom:20px;">
+          <div>
+            <h2 style="font-size:20px;">My Lost Item Reports</h2>
+            <p class="muted" style="margin:0;font-size:13px;">Items you have reported missing.</p>
+          </div>
+        </div>
+
+        {% set active_lost_items = lost_items | selectattr('status', 'equalto', 'Active') | list %}
+        {% if lost_items %}
+          <div class="items-grid" id="lost-items-grid">
+            {% for item in lost_items %}
+              <div class="filterable-item" data-type="lost" data-status="{{ item['status']|lower }}">
+                <article class="item-card">
+                  <div class="card-punch-hole"></div>
+
+                  <div class="card-image-wrap">
+                    {% if item['image'] %}
+                      <img src="{{ url_for('uploaded_file', filename=item['image']) }}" alt="{{ item['name'] }}" loading="lazy">
+                    {% else %}
+                      <div class="no-image-placeholder">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>No image attached</span>
+                      </div>
+                    {% endif %}
+
+                    <div class="card-badges">
+                      {% if item['status'] == 'Returned' %}
+                        <span class="status-stamp status-returned"><i class="fa-solid fa-check"></i> Reclaimed</span>
+                      {% else %}
+                        <span class="status-stamp status-lost"><i class="fa-solid fa-circle-exclamation"></i> Lost</span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="card-body">
+                    <div class="card-meta-top">
+                      <span class="card-category-tag"><i class="fa-solid fa-tag"></i> {{ item['category'] }}</span>
+                      <span class="card-report-id">#L-{{ item['id'] }}</span>
+                    </div>
+
+                    <h3>{{ item['name'] }}</h3>
+                    <p class="card-desc">{{ item['description'] }}</p>
+
+                    <div class="card-info-rows">
+                      <div class="info-row">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <span>{{ item['location'] }}</span>
+                      </div>
+                      <div class="info-row">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>{{ item['date_reported'] }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="card-actions-bar">
+                      <a href="/item/lost/{{ item['id'] }}" class="btn btn-ghost btn-sm" style="flex:1;">
+                        <i class="fa-solid fa-eye"></i> View
+                      </a>
+                      <a href="/item/lost/{{ item['id'] }}/edit" class="btn btn-secondary btn-sm" style="flex:1;">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                      </a>
+                      <form method="POST" action="/item/lost/{{ item['id'] }}/delete" data-confirm="Are you sure you want to permanently delete this report?" data-confirm-title="Delete Report" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state-box" style="padding:24px 16px;">
+            <p class="muted" style="margin:0;">No lost items reported yet.</p>
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- SECTION 2: MY FOUND REPORTS -->
+      <div id="found-section" style="margin-bottom:40px;">
+        <div class="section-head" style="border-left:4px solid var(--status-found);padding-left:14px;margin-bottom:20px;">
+          <div>
+            <h2 style="font-size:20px;">My Found Item Reports</h2>
+            <p class="muted" style="margin:0;font-size:13px;">Items you have turned in or reported found.</p>
+          </div>
+        </div>
+
+        {% if found_items %}
+          <div class="items-grid" id="found-items-grid">
+            {% for item in found_items %}
+              <div class="filterable-item" data-type="found" data-status="{{ item['status']|lower }}">
+                <article class="item-card">
+                  <div class="card-punch-hole"></div>
+
+                  <div class="card-image-wrap">
+                    {% if item['image'] %}
+                      <img src="{{ url_for('uploaded_file', filename=item['image']) }}" alt="{{ item['name'] }}" loading="lazy">
+                    {% else %}
+                      <div class="no-image-placeholder">
+                        <i class="fa-solid fa-box-open"></i>
+                        <span>No image attached</span>
+                      </div>
+                    {% endif %}
+
+                    <div class="card-badges">
+                      {% if item['status'] == 'Returned' %}
+                        <span class="status-stamp status-returned"><i class="fa-solid fa-check"></i> Reclaimed</span>
+                      {% else %}
+                        <span class="status-stamp status-found"><i class="fa-solid fa-box-archive"></i> Found</span>
+                      {% endif %}
+                    </div>
+                  </div>
+
+                  <div class="card-body">
+                    <div class="card-meta-top">
+                      <span class="card-category-tag"><i class="fa-solid fa-tag"></i> {{ item['category'] }}</span>
+                      <span class="card-report-id">#F-{{ item['id'] }}</span>
+                    </div>
+
+                    <h3>{{ item['name'] }}</h3>
+                    <p class="card-desc">{{ item['description'] }}</p>
+
+                    <div class="card-info-rows">
+                      <div class="info-row">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <span>{{ item['location'] }}</span>
+                      </div>
+                      <div class="info-row">
+                        <i class="fa-regular fa-clock"></i>
+                        <span>{{ item['date_reported'] }}</span>
+                      </div>
+                    </div>
+
+                    <!-- Action Controls -->
+                    <div class="card-actions-bar">
+                      <a href="/item/found/{{ item['id'] }}" class="btn btn-ghost btn-sm" style="flex:1;">
+                        <i class="fa-solid fa-eye"></i> View
+                      </a>
+                      <a href="/item/found/{{ item['id'] }}/edit" class="btn btn-secondary btn-sm" style="flex:1;">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit
+                      </a>
+                      <form method="POST" action="/item/found/{{ item['id'] }}/delete" data-confirm="Are you sure you want to permanently delete this report?" data-confirm-title="Delete Report" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm" title="Delete">
+                          <i class="fa-solid fa-trash"></i>
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty-state-box" style="padding:24px 16px;">
+            <p class="muted" style="margin:0;">No found items reported yet.</p>
+          </div>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% block title %}Messages &amp; Direct Chat | ReClaim{% endblock %}
+
+{% block content %}
+<div class="section-wrap">
+  <div class="container">
+    <div class="section-head" style="margin-bottom:24px;">
+      <div>
+        <p class="section-tag" style="color:var(--primary);"><i class="fa-solid fa-comments"></i> DIRECT COMMUNICATION</p>
+        <h1>Messages &amp; Conversations</h1>
+        <p class="muted">Coordinate returns safely with finders and owners without sharing personal phone numbers.</p>
+      </div>
+      <div>
+        <a href="/" class="btn btn-secondary btn-sm">
+          <i class="fa-solid fa-magnifying-glass"></i> Browse Listings
+        </a>
+      </div>
+    </div>
+
+    <!-- Conversations Container -->
+    <div class="inbox-card-shell" style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-xl);overflow:hidden;box-shadow:var(--shadow-sm);">
+      <div class="inbox-header-bar" style="padding:16px 20px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;background:var(--bg-surface-subtle);">
+        <strong style="font-size:15px;color:var(--text-main);display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-inbox"></i> Active Message Threads ({{ threads|length }})
+        </strong>
+        <span class="muted" style="font-size:12.5px;">All communications are private and secure</span>
+      </div>
+
+      {% if threads %}
+        <div class="inbox-threads-list" style="display:flex;flex-direction:column;">
+          {% for t in threads %}
+            <a href="/messages/{{ t['item_type'] }}/{{ t['item']['id'] }}/{{ t['other_user']['id'] }}" class="inbox-thread-item" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border-subtle);text-decoration:none;color:inherit;transition:background var(--transition-fast);gap:16px;background:{% if t['unread_count'] > 0 %}var(--bg-surface-subtle){% else %}transparent{% endif %};">
+              <div style="display:flex;align-items:center;gap:16px;flex:1;min-width:0;">
+                <!-- Item Thumbnail -->
+                <div style="width:52px;height:52px;border-radius:var(--radius-md);overflow:hidden;background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);flex-shrink:0;display:flex;align-items:center;justify-content:center;position:relative;">
+                  {% if t['item']['image'] %}
+                    <img src="{{ url_for('uploaded_file', filename=t['item']['image']) }}" alt="{{ t['item']['name'] }}" style="width:100%;height:100%;object-fit:cover;">
+                  {% else %}
+                    <i class="fa-solid {% if t['item_type'] == 'lost' %}fa-magnifying-glass{% else %}fa-box-open{% endif %}" style="font-size:20px;color:var(--text-subtle);"></i>
+                  {% endif %}
+                  <span style="position:absolute;bottom:0;right:0;font-size:9px;font-weight:800;padding:1px 4px;border-top-left-radius:var(--radius-xs);color:#fff;background:{% if t['item_type']=='lost' %}var(--status-lost){% else %}var(--status-found){% endif %};">
+                    {{ 'LOST' if t['item_type']=='lost' else 'FOUND' }}
+                  </span>
+                </div>
+
+                <!-- Thread Details -->
+                <div style="flex:1;min-width:0;">
+                  <div style="display:flex;align-items:center;gap:8px;margin-bottom:3px;flex-wrap:wrap;">
+                    <strong style="font-size:15px;color:var(--text-main);">{{ t['item']['name'] }}</strong>
+                    <span class="card-report-id" style="font-size:11px;">#{{ 'L' if t['item_type']=='lost' else 'F' }}-{{ t['item']['id'] }}</span>
+                    <span style="font-size:12px;color:var(--text-muted);">&bull; with <strong>{{ t['other_user']['name'] }}</strong> ({{ t['other_user']['reputation'] }} rep)</span>
+                  </div>
+
+                  <p style="margin:0;font-size:13.5px;color:{% if t['unread_count'] > 0 %}var(--text-main);font-weight:600;{% else %}var(--text-muted);{% endif %}white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+                    {% if t['last_sender_id'] == session['user_id'] %}
+                      <span class="subtle" style="font-weight:600;">You:</span>
+                    {% endif %}
+                    {{ t['last_message'] }}
+                  </p>
+                </div>
+              </div>
+
+              <!-- Right Meta & Unread Badge -->
+              <div style="display:flex;align-items:center;gap:14px;flex-shrink:0;">
+                <div style="text-align:right;">
+                  <span class="muted" style="font-size:12px;display:block;">{{ t['last_timestamp'] }}</span>
+                  {% if t['unread_count'] > 0 %}
+                    <span style="display:inline-block;background:var(--primary);color:#fff;font-size:11px;font-weight:800;padding:2px 7px;border-radius:999px;margin-top:4px;">
+                      {{ t['unread_count'] }} new
+                    </span>
+                  {% endif %}
+                </div>
+                <i class="fa-solid fa-chevron-right" style="color:var(--text-subtle);font-size:13px;"></i>
+              </div>
+            </a>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state-box" style="padding:48px 20px;">
+          <div class="empty-icon-wrap" style="color:var(--primary);background:var(--primary-light);">
+            <i class="fa-solid fa-comments"></i>
+          </div>
+          <h3>No conversation threads yet</h3>
+          <p>When you message an item finder or owner, your private conversation will appear right here.</p>
+          <a href="/" class="btn btn-primary btn-sm" style="margin-top:10px;">
+            <i class="fa-solid fa-magnifying-glass"></i> Explore Lost &amp; Found Listings
+          </a>
+        </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}
