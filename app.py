@@ -27,7 +27,15 @@ DATABASE = os.path.join(BASE_DIR, "database.db")
 UPLOAD_FOLDER = os.path.join(BASE_DIR, "uploads")
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "webp"}
 
-app = Flask(__name__, template_folder="Templates", static_folder="Static")
+STATIC_DIR = os.path.join(BASE_DIR, "Static") if os.path.exists(os.path.join(BASE_DIR, "Static")) else os.path.join(BASE_DIR, "static")
+TEMPLATES_DIR = os.path.join(BASE_DIR, "Templates") if os.path.exists(os.path.join(BASE_DIR, "Templates")) else os.path.join(BASE_DIR, "templates")
+
+app = Flask(
+    __name__,
+    template_folder=TEMPLATES_DIR,
+    static_folder=STATIC_DIR,
+    static_url_path="/static"
+)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 5 * 1024 * 1024  # 5 MB
 app.secret_key = os.environ.get("SECRET_KEY", "reclaim-dev-secret-key-2026")
@@ -41,6 +49,12 @@ SMTP_PASS = os.environ.get("SMTP_PASS")
 EMAIL_FROM = os.environ.get("EMAIL_FROM", SMTP_USER)
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+
+@app.route("/Static/<path:filename>")
+def static_uppercase_fallback(filename):
+    return send_from_directory(app.static_folder, filename)
+
 
 
 # --------------------
