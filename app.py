@@ -1809,7 +1809,22 @@ def admin_delete_report(type, report_id):
 
 
 # --------------------
+# ERROR HANDLERS
+# --------------------
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template("index.html", error_message="Page not found. Redirected to home."), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template("index.html", error_message="An internal error occurred. Please try again."), 500
+
+
+# --------------------
 # APPLICATION ENTRYPOINT
 # --------------------
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    port = int(os.environ.get("PORT", 5000))
+    debug_mode = os.environ.get("FLASK_ENV") == "development"
+    app.run(debug=debug_mode, host="0.0.0.0", port=port)
