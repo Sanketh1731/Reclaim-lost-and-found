@@ -270,8 +270,18 @@ def init_db():
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """, seed_found)
 
+    # 5. Database performance indexes for high-speed queries
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_lost_status ON lost_items(status)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_found_status ON found_items(status)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_lost_user ON lost_items(user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_found_user ON found_items(user_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_claims_item ON claims(item_id, item_type)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_messages_thread ON messages(item_type, item_id, sender_id, receiver_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_notifications_user ON notifications(user_id, is_read)")
+
     conn.commit()
     conn.close()
+
 
 
 
@@ -314,6 +324,57 @@ def inject_globals():
         "is_admin_user": is_admin,
         "now": datetime.now
     }
+
+
+@app.template_filter("time_ago")
+def time_ago_filter(date_str):
+    if not date_str:
+        return ""
+    try:
+        dt = None
+        for fmt in ("%d %b %Y %H:%M", "%d %b %Y", "%d %B %Y", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                break
+            except ValueError:
+                continue
+        if not dt:
+            return date_str
+
+        now = datetime.now()
+        diff = now - dt
+        seconds = diff.total_seconds()
+        
+        if seconds < 0:
+            return "Just now"
+        if seconds < 60:
+            return "Just now"
+        elif seconds < 3600:
+            mins = int(seconds // 60)
+            return f"{mins}m ago"
+        elif seconds < 86400:
+            hours = int(seconds // 3600)
+            return f"{hours}h ago"
+        elif seconds < 172800:
+            return "Yesterday"
+        elif seconds < 604800:
+            days = int(seconds // 86400)
+            return f"{days}d ago"
+        elif seconds < 2592000:
+            weeks = int(seconds // 604800)
+            return f"{weeks}w ago"
+        else:
+            return dt.strftime("%d %b %Y")
+    except Exception:
+        return date_str
+
+
+@app.after_request
+def add_performance_headers(response):
+    if request.path.startswith("/static/"):
+        response.headers["Cache-Control"] = "public, max-age=86400"
+    return response
+
 
 
 # --------------------
@@ -398,17 +459,78 @@ def calculate_match_components(item1, item2):
     n = {}
     n["name"] = round(text_similarity(d1.get("name", ""), d2.get("name", "")) * 100)
     n["description"] = round(text_similarity(d1.get("description", ""), d2.get("description", "")) * 100)
+    
     # Category match: exact match = 100%, otherwise string similarity
     c1 = normalize_text(d1.get("category", ""))
     c2 = normalize_text(d2.get("category", ""))
-    if c1 and c2 and c1 == c2:
+    is_exact_category = bool(c1 and c2 and c1 == c2)
+    if is_exact_category:
         n["category"] = 100
     else:
         n["category"] = round(text_similarity(c1, c2) * 100)
+    
     n["location"] = round(text_similarity(d1.get("location", ""), d2.get("location", "")) * 100)
 
     final = round((n["name"] * 0.35 + n["description"] * 0.25 + n["category"] * 0.25 + n["location"] * 0.15))
-    return {"components": n, "score": final}
+
+    # Generate explainable reasons list
+    reasons = []
+    if is_exact_category:
+        reasons.append(f"Exact category match: {d1.get('category', 'Category')}")
+    elif n["category"] >= 70:
+        reasons.append("Similar item category")
+
+    if n["name"] >= 75:
+        reasons.append(f"Strong title match ({n['name']}%)")
+    elif n["name"] >= 45:
+        reasons.append("Matching title keywords")
+
+    if n["location"] >= 65:
+        reasons.append(f"Location overlap ({d2.get('location', '')})")
+
+    if n["description"] >= 60:
+        reasons.append("Shared description details")
+
+    # Time proximity analysis
+    try:
+        dt1 = None
+        dt2 = None
+        for fmt in ("%d %b %Y %H:%M", "%d %b %Y", "%d %B %Y", "%Y-%m-%d"):
+            if not dt1 and d1.get("date_reported"):
+                try: dt1 = datetime.strptime(d1["date_reported"], fmt)
+                except ValueError: pass
+            if not dt2 and d2.get("date_reported"):
+                try: dt2 = datetime.strptime(d2["date_reported"], fmt)
+                except ValueError: pass
+        if dt1 and dt2:
+            days_diff = abs((dt1 - dt2).days)
+            if days_diff <= 3:
+                reasons.append("Reported within 3 days of each other")
+            elif days_diff <= 7:
+                reasons.append("Reported in the same week")
+    except Exception:
+        pass
+
+    if not reasons:
+        reasons.append("Partial keyword similarity")
+
+    if final >= 70:
+        level = "High Confidence"
+        level_class = "status-found"
+    elif final >= 45:
+        level = "Moderate Confidence"
+        level_class = "status-match"
+    else:
+        level = "Possible Match"
+        level_class = "status-lost"
+
+    return {
+        "components": n,
+        "score": final,
+        "level": level,
+        "level_class": level_class,
+        "reasons": reasons
+    }
 
 
 def find_matches(item, item_type, limit=6):
@@ -422,9 +544,100 @@ def find_matches(item, item_type, limit=6):
     for cand in candidates:
         comp = calculate_match_components(item, cand)
         if comp["score"] >= 20:
-            matches.append({"item": cand, "score": comp["score"], "components": comp["components"]})
+            matches.append({
+                "item": cand,
+                "score": comp["score"],
+                "level": comp["level"],
+                "level_class": comp["level_class"],
+                "reasons": comp["reasons"],
+                "components": comp["components"]
+            })
     matches.sort(key=lambda x: x["score"], reverse=True)
     return matches[:limit]
+
+
+def calculate_claim_confidence(claim, item):
+    """
+    Computes an Ownership Confidence Score (0-100) based on:
+    1. Answer depth and specificity (0-40 pts)
+    2. Claimant reputation & verified return history (0-35 pts)
+    3. Account tenure & email verification (0-25 pts)
+    """
+    c = dict(claim) if not isinstance(claim, dict) else claim
+    score = 0
+    reasons = []
+
+    answer = (c.get("answer") or "").strip()
+    ans_len = len(answer)
+    words = len(answer.split())
+
+    # 1. Answer Quality & Detail (Max 40 pts)
+    if ans_len >= 30 or words >= 6:
+        score += 40
+        reasons.append(f"Detailed answer ({ans_len} characters)")
+    elif ans_len >= 15 or words >= 3:
+        score += 28
+        reasons.append("Clear verification answer provided")
+    elif ans_len >= 5:
+        score += 18
+        reasons.append("Brief answer provided")
+    else:
+        score += 8
+        reasons.append("Very short answer (<5 chars)")
+
+    # 2. Claimant Reputation & Community Track Record (Max 35 pts)
+    rep = c.get("claimant_reputation") or 0
+    returned_c = c.get("claimant_returned_count") or 0
+    if rep >= 50:
+        score += 35
+        reasons.append(f"Community Hero ({rep} reputation pts)")
+    elif rep >= 20:
+        score += 28
+        reasons.append(f"Helpful Finder ({rep} reputation pts)")
+    elif rep > 0:
+        score += 18
+        reasons.append(f"Active Member ({rep} reputation pts)")
+    else:
+        score += 10
+        reasons.append("New member account")
+
+    if returned_c > 0:
+        score = min(100, score + 5)
+        reasons.append(f"Verified returner ({returned_c} items returned)")
+
+    # 3. Account Age & Profile Verification (Max 25 pts)
+    email = c.get("claimant_email") or ""
+    if "@" in email:
+        score += 15
+        domain = email.split("@")[-1].lower()
+        if any(edu in domain for edu in ("edu", "ac.in", "campus", "univ", "college", "org")):
+            score += 10
+            reasons.append(f"Verified campus email (@{domain})")
+        else:
+            score += 5
+            reasons.append("Standard verified account")
+    else:
+        score += 5
+
+    score = min(100, max(10, score))
+    
+    if score >= 75:
+        level = "High Trust"
+        badge_class = "status-found"
+    elif score >= 50:
+        level = "Moderate Trust"
+        badge_class = "status-match"
+    else:
+        level = "Needs Extra Review"
+        badge_class = "status-lost"
+
+    return {
+        "score": score,
+        "level": level,
+        "badge_class": badge_class,
+        "reasons": reasons
+    }
+
 
 
 # --------------------
@@ -1597,16 +1810,25 @@ def item_details(item_type, item_id):
             (item_id, item_type, uid)
         ).fetchone()
 
-    # If viewer is the finder, get all received claims
+    # If viewer is the finder, get all received claims with Ownership Confidence metrics
     item_claims = []
     if is_owner:
-        item_claims = conn.execute("""
-            SELECT c.*, u.name as claimant_name, u.email as claimant_email, u.reputation as claimant_reputation
+        raw_claims = conn.execute("""
+            SELECT c.*, u.name as claimant_name, u.email as claimant_email, u.reputation as claimant_reputation, u.date_joined as claimant_joined, u.returned_count as claimant_returned_count
             FROM claims c
             JOIN users u ON c.claimant_id = u.id
             WHERE c.item_id = ? AND c.item_type = ?
             ORDER BY c.id DESC
         """, (item_id, item_type)).fetchall()
+        for rc in raw_claims:
+            c_dict = dict(rc)
+            conf = calculate_claim_confidence(c_dict, item)
+            c_dict["confidence_score"] = conf["score"]
+            c_dict["confidence_level"] = conf["level"]
+            c_dict["confidence_badge"] = conf["badge_class"]
+            c_dict["confidence_reasons"] = conf["reasons"]
+            item_claims.append(c_dict)
+
 
     # Determine if contact info is locked behind verification question
     has_question = bool(

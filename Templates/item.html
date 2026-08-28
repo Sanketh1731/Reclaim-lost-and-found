@@ -246,6 +246,28 @@
                       <p style="margin:2px 0 0;font-weight:600;color:var(--text-main);">"{{ c['answer'] }}"</p>
                     </div>
 
+                    <!-- Ownership Confidence Indicator -->
+                    <div style="background:var(--bg-surface);padding:10px 12px;border-radius:var(--radius-xs);border:1px solid var(--border-subtle);margin-bottom:10px;">
+                      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
+                        <span style="font-size:12px;font-weight:700;color:var(--text-main);display:flex;align-items:center;gap:5px;">
+                          <i class="fa-solid fa-shield-halved" style="color:var(--primary);"></i> Ownership Confidence Score:
+                        </span>
+                        <span class="status-stamp {{ c['confidence_badge'] }}" style="font-size:11px;padding:2px 8px;">
+                          {{ c['confidence_score'] }}% — {{ c['confidence_level'] }}
+                        </span>
+                      </div>
+
+                      {% if c['confidence_reasons'] %}
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;">
+                          {% for r in c['confidence_reasons'] %}
+                            <span style="font-size:11px;background:var(--bg-surface-subtle);color:var(--text-main);border:1px solid var(--border-subtle);padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:4px;">
+                              <i class="fa-solid fa-check" style="font-size:9px;color:var(--status-found);"></i> {{ r }}
+                            </span>
+                          {% endfor %}
+                        </div>
+                      {% endif %}
+                    </div>
+
                     {% if c['status'] == 'Pending' %}
                       <div style="display:flex;gap:8px;">
                         <form method="POST" action="/claim/{{ c['id'] }}/approve" style="flex:1;">
@@ -295,7 +317,7 @@
           <div>
             <p class="section-tag"><i class="fa-solid fa-bolt"></i> AI SMART MATCH ENGINE</p>
             <h2>Potential Matching {{ 'Found' if item_type == 'lost' else 'Lost' }} Reports</h2>
-            <p class="muted">ReClaim analyzes title semantics, item category, location overlap, and description keywords to suggest matches.</p>
+            <p class="muted">ReClaim analyzes title semantics, item category, location overlap, and description keywords with explainable confidence.</p>
           </div>
         </div>
 
@@ -314,7 +336,7 @@
                 <div class="match-details-col">
                   <div class="match-meter-row">
                     <span class="match-badge {% if m['score'] >= 70 %}high{% elif m['score'] >= 45 %}medium{% else %}low{% endif %}">
-                      {{ m['score'] }}% MATCH
+                      {{ m['score'] }}% MATCH ({{ m['level'] }})
                     </span>
                     <span class="card-report-id">#{{ m['item']['id'] }}</span>
                   </div>
@@ -324,12 +346,37 @@
                   </div>
 
                   <h3 style="font-size:16px;margin-bottom:2px;">{{ m['item']['name'] }}</h3>
-                  <p class="card-desc" style="font-size:12.5px;margin-bottom:8px;">{{ m['item']['description'] }}</p>
+                  <p class="card-desc" style="font-size:12.5px;margin-bottom:6px;">{{ m['item']['description'] }}</p>
 
-                  <div style="font-size:12px;color:var(--text-muted);display:flex;gap:10px;margin-bottom:10px;">
+                  <div style="font-size:12px;color:var(--text-muted);display:flex;gap:10px;margin-bottom:6px;flex-wrap:wrap;">
                     <span><i class="fa-solid fa-tag"></i> {{ m['item']['category'] }}</span>
                     <span><i class="fa-solid fa-location-dot"></i> {{ m['item']['location'] }}</span>
+                    <span title="{{ m['item']['date_reported'] }}"><i class="fa-regular fa-clock"></i> {{ m['item']['date_reported']|time_ago }}</span>
                   </div>
+
+                  <!-- Explainable Match Reasons -->
+                  {% if m['reasons'] %}
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">
+                      {% for r in m['reasons'] %}
+                        <span style="font-size:11px;background:var(--bg-surface-subtle);border:1px solid var(--border-subtle);color:var(--text-main);padding:2px 6px;border-radius:4px;display:inline-flex;align-items:center;gap:4px;">
+                          <i class="fa-solid fa-circle-check" style="color:var(--status-found);font-size:9px;"></i> {{ r }}
+                        </span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+
+                  <!-- Match Score Component Breakdown -->
+                  <details style="font-size:11.5px;margin-bottom:10px;cursor:pointer;">
+                    <summary style="color:var(--primary);font-weight:700;outline:none;user-select:none;">
+                      <i class="fa-solid fa-chart-simple"></i> View Factor Breakdown
+                    </summary>
+                    <div style="background:var(--bg-surface);padding:8px 10px;border-radius:4px;border:1px solid var(--border-subtle);margin-top:6px;display:grid;grid-template-columns:1fr 1fr;gap:6px;color:var(--text-main);">
+                      <div><strong>Category:</strong> {{ m['components']['category'] }}%</div>
+                      <div><strong>Title:</strong> {{ m['components']['name'] }}%</div>
+                      <div><strong>Location:</strong> {{ m['components']['location'] }}%</div>
+                      <div><strong>Details:</strong> {{ m['components']['description'] }}%</div>
+                    </div>
+                  </details>
 
                   <div style="margin-top:auto;">
                     <a href="/item/{{ 'found' if item_type == 'lost' else 'lost' }}/{{ m['item']['id'] }}" class="btn btn-secondary btn-sm" style="width:100%;">
@@ -340,6 +387,7 @@
               </article>
             {% endfor %}
           </div>
+
         {% else %}
           <div class="empty-state-box">
             <div class="empty-icon-wrap" style="background:var(--bg-surface-subtle);color:var(--text-muted);">
