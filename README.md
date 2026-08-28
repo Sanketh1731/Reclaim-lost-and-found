@@ -8,11 +8,16 @@
 
 - **Smart Multi-Factor Matching Engine**: Automatically compares lost and found listings using fuzzy string matching across title, category, description, and location to calculate real-time similarity scores.
 - **Automated Alerts & Notifications**: In-app and automated SMTP email alerts when potential matches are identified.
+- **Reunited Success Stories Showcase & Archive**: Real-time showcase on the homepage celebrating recovered items and a full searchable resolution archive (`/reclaimed`).
+- **Printable Missing Item Flyer Generator**: 1-click generation of high-resolution A4 posters with dynamic QR codes and tear-off contact strips for physical bulletin boards (`/item/<type>/<id>/flyer`).
+- **Smart QR Item Tags Maker**: Preventative asset protection allowing users to generate printable sticker sheets of QR codes for laptops, keys, and water bottles before loss (`/qr-tags`).
+- **Community Hall of Fame & Leaderboard**: Gamified reputation scoring and podium honoring good Samaritans with badges (*Community Hero*, *Helpful Finder*) (`/leaderboard`).
 - **Anti-Fraud Ownership Claims**: Item posters can lock contact details behind verification questions, requiring claimants to verify ownership before private details are unlocked.
 - **Interactive Geospatial Campus Map**: Visualizes lost and found items on an interactive Leaflet.js map with coordinate mapping and campus presets.
 - **In-App Direct Messaging**: Built-in chat system allowing finders and owners to coordinate returns safely.
 - **Admin Moderation Panel**: Content flagging, report moderation, user reputation metrics, and administrative role management.
 - **Modern Responsive UI**: Clean light/dark mode design system built with vanilla CSS and responsive components.
+
 
 ---
 

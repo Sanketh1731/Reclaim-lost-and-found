@@ -302,7 +302,9 @@
     let visibleCount = 0;
     let lostVisible = 0;
     let foundVisible = 0;
+    let returnedVisible = 0;
     const query = (liveSearchInput ? liveSearchInput.value : "").toLowerCase().trim();
+    const isReclaimedPage = window.location.pathname.startsWith("/reclaimed");
 
     itemCards.forEach(function (card) {
       const name = (card.dataset.name || "").toLowerCase();
@@ -316,9 +318,16 @@
       const matchesCategory = activeCategory === "all" || category === activeCategory.toLowerCase();
       
       let matchesTab = true;
-      if (activeTab === "lost") matchesTab = itemType === "lost" && (status === "active" || status === "");
-      else if (activeTab === "found") matchesTab = itemType === "found" && (status === "active" || status === "");
-      else if (activeTab === "returned") matchesTab = status === "returned";
+      if (isReclaimedPage) {
+        if (activeTab === "lost") matchesTab = (itemType === "lost");
+        else if (activeTab === "found") matchesTab = (itemType === "found");
+        else if (activeTab === "all") matchesTab = true;
+      } else {
+        if (activeTab === "lost") matchesTab = (itemType === "lost") && (status === "active" || status === "");
+        else if (activeTab === "found") matchesTab = (itemType === "found") && (status === "active" || status === "");
+        else if (activeTab === "returned" || activeTab === "reclaimed") matchesTab = (status === "returned");
+        else if (activeTab === "all") matchesTab = true;
+      }
 
       const isVisible = matchesText && matchesCategory && matchesTab;
       card.style.display = isVisible ? "" : "none";
@@ -326,24 +335,40 @@
         visibleCount++;
         if (itemType === "lost") lostVisible++;
         if (itemType === "found") foundVisible++;
+        if (status === "returned") returnedVisible++;
       }
     });
 
     // Toggle entire sections according to active tab
     const lostSection = document.getElementById("lost-section");
     const foundSection = document.getElementById("found-section");
+    const reunitedSection = document.getElementById("reunited-section");
+
     if (lostSection) {
       if (activeTab === "found") {
         lostSection.style.display = "none";
+      } else if ((activeTab === "returned" || activeTab === "reclaimed") && !isReclaimedPage) {
+        lostSection.style.display = lostVisible > 0 ? "" : "none";
       } else {
-        lostSection.style.display = (lostVisible === 0 && query) ? "none" : "";
+        lostSection.style.display = (lostVisible === 0 && (query || activeCategory !== "all")) ? "none" : "";
       }
     }
+
     if (foundSection) {
       if (activeTab === "lost") {
         foundSection.style.display = "none";
+      } else if ((activeTab === "returned" || activeTab === "reclaimed") && !isReclaimedPage) {
+        foundSection.style.display = foundVisible > 0 ? "" : "none";
       } else {
-        foundSection.style.display = (foundVisible === 0 && query) ? "none" : "";
+        foundSection.style.display = (foundVisible === 0 && (query || activeCategory !== "all")) ? "none" : "";
+      }
+    }
+
+    if (reunitedSection) {
+      if (activeTab === "lost" || activeTab === "found") {
+        reunitedSection.style.display = "none";
+      } else {
+        reunitedSection.style.display = "";
       }
     }
 

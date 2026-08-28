@@ -484,10 +484,17 @@ def mark_token_used(token):
 @app.route("/")
 def index():
     conn = get_db_connection()
-    # Only fetch active available items for the main page
+    # Active available items for the main grid
     lost_items = conn.execute("SELECT * FROM lost_items WHERE status = 'Active' ORDER BY id DESC LIMIT 50").fetchall()
     found_items = conn.execute("SELECT * FROM found_items WHERE status = 'Active' ORDER BY id DESC LIMIT 50").fetchall()
     
+    # Recent reunited / success stories
+    reunited_lost = conn.execute("SELECT *, 'lost' as item_type FROM lost_items WHERE status = 'Returned' ORDER BY id DESC LIMIT 8").fetchall()
+    reunited_found = conn.execute("SELECT *, 'found' as item_type FROM found_items WHERE status = 'Returned' ORDER BY id DESC LIMIT 8").fetchall()
+    reunited_items = list(reunited_lost) + list(reunited_found)
+    reunited_items.sort(key=lambda x: x["id"], reverse=True)
+    reunited_items = reunited_items[:8]
+
     # Community stats
     total_recovered = conn.execute("SELECT COUNT(*) as c FROM (SELECT id FROM lost_items WHERE status='Returned' UNION ALL SELECT id FROM found_items WHERE status='Returned')").fetchone()["c"]
     total_active = len(lost_items) + len(found_items)
@@ -499,9 +506,18 @@ def index():
         "active": total_active,
         "active_lost": len(lost_items),
         "active_found": len(found_items),
-        "users": total_users
+        "users": total_users,
+        "reunited_count": total_recovered
     }
-    return render_template("index.html", lost_items=lost_items, found_items=found_items, stats=stats, current_type="all")
+    return render_template(
+        "index.html",
+        lost_items=lost_items,
+        found_items=found_items,
+        reunited_items=reunited_items,
+        stats=stats,
+        current_type="all"
+    )
+
 
 
 @app.route("/search")
@@ -646,6 +662,55 @@ def api_search():
     })
 
 
+@app.route("/leaderboard")
+def leaderboard():
+    conn = get_db_connection()
+    top_helpers = conn.execute("""
+        SELECT id, name, reputation, reports_count, returned_count, date_joined
+        FROM users
+        ORDER BY reputation DESC, returned_count DESC, id ASC
+        LIMIT 25
+    """).fetchall()
+    
+    total_reclaimed = conn.execute("SELECT COUNT(*) as c FROM (SELECT id FROM lost_items WHERE status='Returned' UNION ALL SELECT id FROM found_items WHERE status='Returned')").fetchone()["c"]
+    total_reports = conn.execute("SELECT COUNT(*) as c FROM (SELECT id FROM lost_items UNION ALL SELECT id FROM found_items)").fetchone()["c"]
+    total_helpers = conn.execute("SELECT COUNT(*) as c FROM users WHERE reputation > 0").fetchone()["c"]
+    
+    conn.close()
+    return render_template(
+        "leaderboard.html",
+        top_helpers=top_helpers,
+        total_reclaimed=total_reclaimed,
+        total_reports=total_reports,
+        total_helpers=total_helpers
+    )
+
+
+@app.route("/qr-tags")
+def qr_tags():
+    return render_template("qr_tags.html")
+
+
+@app.route("/item/<item_type>/<int:item_id>/flyer")
+def item_flyer(item_type, item_id):
+    if item_type not in ("lost", "found"):
+        flash("Invalid item type for flyer.", "danger")
+        return redirect(url_for("index"))
+    table = "lost_items" if item_type == "lost" else "found_items"
+    conn = get_db_connection()
+    item = conn.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone()
+    owner = None
+    if item and item["user_id"]:
+        owner = conn.execute("SELECT name, email, reputation FROM users WHERE id = ?", (item["user_id"],)).fetchone()
+    conn.close()
+    if not item:
+        flash("Report not found.", "warning")
+        return redirect(url_for("index"))
+    
+    item_url = url_for("item_details", item_type=item_type, item_id=item_id, _external=True)
+    return render_template("flyer.html", item=item, item_type=item_type, owner=owner, item_url=item_url)
+
+
 @app.route("/privacy")
 def privacy():
     return render_template("privacy.html")
@@ -654,6 +719,7 @@ def privacy():
 @app.route("/terms")
 def terms():
     return render_template("terms.html")
+
 
 
 @app.route("/uploads/<filename>")

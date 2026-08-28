@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}Community Hall of Fame &amp; Leaderboard | ReClaim{% endblock %}
+
+{% block content %}
+<div class="section-wrap" style="padding-top:30px;padding-bottom:60px;">
+  <div class="container">
+    <!-- Header Banner -->
+    <div class="section-head">
+      <div>
+        <p class="section-tag" style="color:var(--status-match);"><i class="fa-solid fa-trophy"></i> COMMUNITY TRUST &amp; HONESTY</p>
+        <h1>Campus Hall of Fame</h1>
+        <p class="muted">Honoring honest finders and good Samaritans who help reconnect lost belongings with their rightful owners.</p>
+      </div>
+
+      <div style="display:flex;gap:10px;align-items:center;">
+        <a href="/add-found" class="btn btn-success">
+          <i class="fa-solid fa-circle-plus"></i> + Report Found Item
+        </a>
+      </div>
+    </div>
+
+    <!-- Platform Hero Highlights -->
+    <div class="dashboard-metrics-grid" style="margin-bottom:32px;">
+      <div class="metric-card">
+        <div class="metric-icon-wrap resolved"><i class="fa-solid fa-circle-check"></i></div>
+        <div class="metric-info">
+          <strong>{{ total_reclaimed }}</strong>
+          <span>Items Reconnected</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap reputation"><i class="fa-solid fa-award"></i></div>
+        <div class="metric-info">
+          <strong>{{ total_helpers }}</strong>
+          <span>Recognized Helpers</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap found"><i class="fa-solid fa-box-open"></i></div>
+        <div class="metric-info">
+          <strong>{{ total_reports }}</strong>
+          <span>Total Community Reports</span>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon-wrap lost"><i class="fa-solid fa-star"></i></div>
+        <div class="metric-info">
+          <strong>+15 pts</strong>
+          <span>Earned Per Successful Return</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Podium for Top 3 Helpers -->
+    {% if top_helpers|length >= 3 %}
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;margin-bottom:36px;">
+        <!-- Rank 2: Silver -->
+        {% set silver = top_helpers[1] %}
+        <div style="background:var(--bg-surface);border:2px solid #94a3b8;border-radius:var(--radius-lg);padding:24px;text-align:center;box-shadow:var(--shadow-sm);position:relative;">
+          <div style="position:absolute;top:12px;right:14px;background:#e2e8f0;color:#475569;font-weight:900;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;">#2</div>
+          <div class="profile-avatar-large" style="background:#64748b;margin:0 auto 12px;">{{ silver['name'][:1]|upper }}</div>
+          <h3 style="font-size:18px;margin-bottom:4px;">{{ silver['name'] }}</h3>
+          <span class="status-stamp" style="background:#f1f5f9;color:#475569;border-color:#cbd5e1;font-size:11.5px;margin-bottom:12px;display:inline-block;">
+            <i class="fa-solid fa-medal"></i> Helpful Finder
+          </span>
+          <div style="display:flex;justify-content:space-around;border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:10px;">
+            <div>
+              <strong style="display:block;font-size:18px;color:var(--status-match);">{{ silver['reputation'] }}</strong>
+              <span class="muted" style="font-size:11.5px;">Reputation</span>
+            </div>
+            <div>
+              <strong style="display:block;font-size:18px;color:var(--status-found);">{{ silver['returned_count'] }}</strong>
+              <span class="muted" style="font-size:11.5px;">Returned</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rank 1: Gold / Champion -->
+        {% set gold = top_helpers[0] %}
+        <div style="background:var(--bg-surface);border:2px solid #eab308;border-radius:var(--radius-lg);padding:24px;text-align:center;box-shadow:var(--shadow-md);position:relative;transform:scale(1.03);">
+          <div style="position:absolute;top:12px;right:14px;background:#fef08a;color:#854d0e;font-weight:900;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:14px;">👑 #1</div>
+          <div class="profile-avatar-large" style="background:linear-gradient(135deg, #eab308, #ca8a04);margin:0 auto 12px;box-shadow:0 4px 12px rgba(234,179,8,0.35);">{{ gold['name'][:1]|upper }}</div>
+          <h3 style="font-size:20px;margin-bottom:4px;">{{ gold['name'] }}</h3>
+          <span class="status-stamp" style="background:#fef9c3;color:#854d0e;border-color:#fde047;font-size:12px;margin-bottom:12px;display:inline-block;font-weight:800;">
+            <i class="fa-solid fa-crown"></i> Community Hero
+          </span>
+          <div style="display:flex;justify-content:space-around;border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:10px;">
+            <div>
+              <strong style="display:block;font-size:20px;color:var(--status-match);">{{ gold['reputation'] }}</strong>
+              <span class="muted" style="font-size:11.5px;">Reputation</span>
+            </div>
+            <div>
+              <strong style="display:block;font-size:20px;color:var(--status-found);">{{ gold['returned_count'] }}</strong>
+              <span class="muted" style="font-size:11.5px;">Returned</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Rank 3: Bronze -->
+        {% set bronze = top_helpers[2] %}
+        <div style="background:var(--bg-surface);border:2px solid #d97706;border-radius:var(--radius-lg);padding:24px;text-align:center;box-shadow:var(--shadow-sm);position:relative;">
+          <div style="position:absolute;top:12px;right:14px;background:#fed7aa;color:#9a3412;font-weight:900;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;">#3</div>
+          <div class="profile-avatar-large" style="background:#b45309;margin:0 auto 12px;">{{ bronze['name'][:1]|upper }}</div>
+          <h3 style="font-size:18px;margin-bottom:4px;">{{ bronze['name'] }}</h3>
+          <span class="status-stamp" style="background:#ffedd5;color:#9a3412;border-color:#fed7aa;font-size:11.5px;margin-bottom:12px;display:inline-block;">
+            <i class="fa-solid fa-award"></i> Helpful Finder
+          </span>
+          <div style="display:flex;justify-content:space-around;border-top:1px solid var(--border-subtle);padding-top:12px;margin-top:10px;">
+            <div>
+              <strong style="display:block;font-size:18px;color:var(--status-match);">{{ bronze['reputation'] }}</strong>
+              <span class="muted" style="font-size:11.5px;">Reputation</span>
+            </div>
+            <div>
+              <strong style="display:block;font-size:18px;color:var(--status-found);">{{ bronze['returned_count'] }}</strong>
+              <span class="muted" style="font-size:11.5px;">Returned</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    {% endif %}
+
+    <!-- Ranked Leaderboard Table -->
+    <div style="background:var(--bg-surface);border:1px solid var(--border-subtle);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm);">
+      <div style="padding:18px 24px;border-bottom:1px solid var(--border-subtle);display:flex;justify-content:space-between;align-items:center;">
+        <h3 style="font-size:17px;margin:0;"><i class="fa-solid fa-list-ol"></i> Full Community Rankings</h3>
+        <span class="muted" style="font-size:12.5px;">Ranked by reputation points &amp; verified returns</span>
+      </div>
+
+      <div class="admin-table-container" style="border:none;margin:0;">
+        <table class="admin-table">
+          <thead>
+            <tr>
+              <th style="width:60px;">Rank</th>
+              <th>Member Name</th>
+              <th>Honor Tier</th>
+              <th>Reputation Points</th>
+              <th>Items Reunited</th>
+              <th>Total Reports</th>
+              <th>Member Since</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in top_helpers %}
+              <tr>
+                <td>
+                  {% if loop.index == 1 %}
+                    <span style="font-size:18px;">🥇</span>
+                  {% elif loop.index == 2 %}
+                    <span style="font-size:18px;">🥈</span>
+                  {% elif loop.index == 3 %}
+                    <span style="font-size:18px;">🥉</span>
+                  {% else %}
+                    <strong style="color:var(--text-muted);">#{{ loop.index }}</strong>
+                  {% endif %}
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px;">
+                    <div class="user-avatar" style="width:30px;height:30px;font-size:12px;">{{ u['name'][:1]|upper }}</div>
+                    <strong>{{ u['name'] }}</strong>
+                  </div>
+                </td>
+                <td>
+                  {% if u['reputation'] >= 50 %}
+                    <span class="status-stamp" style="background:#fef9c3;color:#854d0e;border-color:#fde047;font-size:11px;">
+                      <i class="fa-solid fa-crown"></i> Hero
+                    </span>
+                  {% elif u['reputation'] >= 20 %}
+                    <span class="status-stamp status-found" style="font-size:11px;">
+                      <i class="fa-solid fa-medal"></i> Helper
+                    </span>
+                  {% else %}
+                    <span class="status-stamp" style="background:var(--bg-surface-subtle);color:var(--text-muted);font-size:11px;">
+                      <i class="fa-regular fa-user"></i> Member
+                    </span>
+                  {% endif %}
+                </td>
+                <td>
+                  <strong style="color:var(--status-match);font-size:15px;">{{ u['reputation'] }} pts</strong>
+                </td>
+                <td>
+                  <strong style="color:var(--status-found);font-size:14px;">{{ u['returned_count'] }}</strong>
+                </td>
+                <td>{{ u['reports_count'] }}</td>
+                <td class="muted" style="font-size:12.5px;">{{ u['date_joined'] }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

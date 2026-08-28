@@ -63,9 +63,12 @@
             <h1>{{ item['name'] }}</h1>
           </div>
 
-          <!-- Owner Quick Controls -->
-          {% if is_owner %}
-            <div style="display:flex;gap:6px;">
+          <!-- Actions & Controls -->
+          <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <a href="/item/{{ item_type }}/{{ item['id'] }}/flyer" class="btn btn-secondary btn-sm" target="_blank" title="Printable A4 bulletin flyer with instant QR code">
+              <i class="fa-solid fa-print"></i> Print Flyer
+            </a>
+            {% if is_owner %}
               <a href="/item/{{ item_type }}/{{ item['id'] }}/edit" class="btn btn-secondary btn-sm" title="Edit this report">
                 <i class="fa-solid fa-pen-to-square"></i> Edit
               </a>
@@ -74,9 +77,10 @@
                   <i class="fa-solid fa-trash"></i>
                 </button>
               </form>
-            </div>
-          {% endif %}
+            {% endif %}
+          </div>
         </div>
+
 
         <!-- Description Box -->
         <div class="details-description-box">

@@ -38,13 +38,19 @@
           <i class="fa-solid fa-house" style="font-size:12px;margin-right:4px;"></i> Home
         </a>
         <a href="/search?type=lost" class="nav-link {% if request.args.get('type') == 'lost' %}active{% endif %}">
-          <i class="fa-solid fa-magnifying-glass-location" style="font-size:12px;margin-right:4px;"></i> Lost Items
+          <i class="fa-solid fa-magnifying-glass-location" style="font-size:12px;margin-right:4px;"></i> Lost
         </a>
         <a href="/search?type=found" class="nav-link {% if request.args.get('type') == 'found' %}active{% endif %}">
-          <i class="fa-solid fa-box-open" style="font-size:12px;margin-right:4px;"></i> Found Items
+          <i class="fa-solid fa-box-open" style="font-size:12px;margin-right:4px;"></i> Found
         </a>
         <a href="/reclaimed" class="nav-link {% if request.path == '/reclaimed' %}active{% endif %}" style="color:var(--status-found);">
-          <i class="fa-solid fa-check-circle" style="font-size:12px;margin-right:4px;"></i> Reclaimed Archive
+          <i class="fa-solid fa-check-circle" style="font-size:12px;margin-right:4px;"></i> Reclaimed
+        </a>
+        <a href="/qr-tags" class="nav-link {% if request.path == '/qr-tags' %}active{% endif %}">
+          <i class="fa-solid fa-qrcode" style="font-size:12px;margin-right:4px;"></i> QR Tags
+        </a>
+        <a href="/leaderboard" class="nav-link {% if request.path == '/leaderboard' %}active{% endif %}">
+          <i class="fa-solid fa-trophy" style="font-size:12px;margin-right:4px;"></i> Hall of Fame
         </a>
         {% if session.get('user_id') %}
           <a href="/dashboard" class="nav-link {% if request.path == '/dashboard' %}active{% endif %}">
@@ -57,6 +63,7 @@
           {% endif %}
         {% endif %}
       </nav>
+
 
       <!-- Header Search Input -->
       <form action="/search" method="GET" class="header-search" role="search" aria-label="Quick Search">
@@ -138,12 +145,19 @@
         <a href="/reclaimed" class="mobile-nav-link" style="color:var(--status-found)">
           <i class="fa-solid fa-check-circle"></i> Reclaimed Archive
         </a>
+        <a href="/qr-tags" class="mobile-nav-link">
+          <i class="fa-solid fa-qrcode"></i> Smart QR Tags Maker
+        </a>
+        <a href="/leaderboard" class="mobile-nav-link">
+          <i class="fa-solid fa-trophy"></i> Hall of Fame
+        </a>
         <a href="/add-lost" class="mobile-nav-link" style="color:var(--status-lost)">
           <i class="fa-solid fa-circle-plus"></i> Report Lost Item
         </a>
         <a href="/add-found" class="mobile-nav-link" style="color:var(--status-found)">
           <i class="fa-solid fa-circle-plus"></i> Report Found Item
         </a>
+
 
         <div style="border-top:1px solid var(--border-subtle);margin:12px 0;"></div>
 
