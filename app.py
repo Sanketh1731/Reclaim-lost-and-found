@@ -226,8 +226,53 @@ def init_db():
     if "verification_question" not in found_cols:
         cur.execute("ALTER TABLE found_items ADD COLUMN verification_question TEXT")
 
+    # 4. Auto-seed initial community data if tables are empty
+    cur.execute("SELECT COUNT(*) FROM users")
+    if cur.fetchone()[0] == 0:
+        cur.execute("""
+            INSERT INTO users (id, name, email, password_hash, date_joined, is_admin, reputation, reports_count, returned_count)
+            VALUES (1, 'Sanketh S', 'sankethbkr2005@gmail.com', ?, '12 Aug 2026', 1, 60, 4, 3)
+        """, (generate_password_hash("password123"),))
+        cur.execute("""
+            INSERT INTO users (id, name, email, password_hash, date_joined, is_admin, reputation, reports_count, returned_count)
+            VALUES (2, 'Finder Alice', 'alice@reclaim.test', ?, '15 Aug 2026', 0, 45, 3, 2)
+        """, (generate_password_hash("password123"),))
+        cur.execute("""
+            INSERT INTO users (id, name, email, password_hash, date_joined, is_admin, reputation, reports_count, returned_count)
+            VALUES (3, 'Alex Community', 'alex@gmail.com', ?, '18 Aug 2026', 0, 20, 2, 1)
+        """, (generate_password_hash("password123"),))
+
+    cur.execute("SELECT COUNT(*) FROM lost_items")
+    if cur.fetchone()[0] == 0:
+        seed_lost = [
+            ("Black Leather Wallet", "Lost near central library 2nd floor containing student ID card and bus pass.", "Central Library 2nd Floor", "9353995002", "Wallet / Money", "25 Aug 2026", "Active", None, 1, 40.7128, -74.0060),
+            ("Ring of Keys with Blue Lanyard", "Set of 3 campus keys with a blue university lanyard and mini bottle opener.", "Main Campus Auditorium", "Call 555-1122", "Keys", "24 Aug 2026", "Active", None, 1, 40.7129, -74.0070),
+            ("Navy Blue North Face Backpack", "Navy blue backpack containing laptop charger and notebook.", "Library 2nd Floor", "sankethbkr2005@gmail.com", "Accessories", "22 Aug 2026", "Active", None, 1, 40.7130, -74.0062),
+            ("Sonata Black Chain Watch", "Black colour Sonata chained wrist watch lost in library area.", "MITE Library Floor 1", "9353995002", "Electronics", "12 Aug 2026", "Returned", None, 1, 40.7130, -74.0062),
+            ("Scientific Calculator Casio fx-991EX", "Black Casio scientific calculator with student sticker on the back cover.", "Science Block Lab 3", "alice@reclaim.test", "Electronics", "18 Aug 2026", "Returned", None, 2, 40.7142, -74.0065)
+        ]
+        cur.executemany("""
+            INSERT INTO lost_items (name, description, location, contact, category, date_reported, status, image, user_id, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, seed_lost)
+
+    cur.execute("SELECT COUNT(*) FROM found_items")
+    if cur.fetchone()[0] == 0:
+        seed_found = [
+            ("Found Black Leather Wallet with Student Badge", "Found a black wallet near the library stairs with a university student ID inside.", "Central Library Stairs", "finder@reclaim.test", "Wallet / Money", "25 Aug 2026", "Active", None, 2, "What is the initials or student ID number inside?", 40.7130, -74.0062),
+            ("Sony WH-1000XM4 Noise-Canceling Headphones", "Found silver Sony over-ear noise-canceling headphones in the quiet study zone.", "Quiet Study Zone Floor 3", "alice@reclaim.test", "Electronics", "25 Aug 2026", "Returned", None, 2, "What custom sticker is placed on the left ear cup?", 40.7130, -74.0062),
+            ("Black Windproof Umbrella", "Large black umbrella with wooden curved handle left near the cafeteria seating area.", "Student Cafeteria & Food Court", "Desk 555-3344", "Other", "24 Aug 2026", "Active", None, 3, "", 40.7122, -74.0055),
+            ("AirPods Pro 2 in Matte Black Case", "Found AirPods Pro charging case with earbuds left on desk in computer lab.", "Engineering Block Lab 2", "sankethbkr2005@gmail.com", "Electronics", "21 Aug 2026", "Active", None, 1, "What engraving or charm is attached to the case?", 40.7138, -74.0050),
+            ("Steel HydroFlask Water Bottle", "Olive green 32oz insulated water bottle with outdoor stickers.", "Campus Gym Locker Room", "alex@gmail.com", "Other", "19 Aug 2026", "Returned", None, 3, "Name two stickers on the bottle", 40.7118, -74.0072)
+        ]
+        cur.executemany("""
+            INSERT INTO found_items (name, description, location, contact, category, date_reported, status, image, user_id, verification_question, latitude, longitude)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, seed_found)
+
     conn.commit()
     conn.close()
+
 
 
 init_db()
