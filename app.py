@@ -2146,12 +2146,13 @@ def admin_delete_report(type, report_id):
 # --------------------
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template("index.html", error_message="Page not found. Redirected to home."), 404
+    return render_template("404.html"), 404
 
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template("index.html", error_message="An internal error occurred. Please try again."), 500
+    return render_template("500.html"), 500
+
 
 
 # --------------------

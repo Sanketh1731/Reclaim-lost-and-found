@@ -133,9 +133,9 @@
                         <i class="fa-solid fa-location-dot"></i>
                         <span>{{ item['location'] }}</span>
                       </div>
-                      <div class="info-row">
+                      <div class="info-row" title="Reported: {{ item['date_reported'] }}">
                         <i class="fa-regular fa-clock"></i>
-                        <span>{{ item['date_reported'] }}</span>
+                        <span>{{ item['date_reported']|time_ago }}</span>
                       </div>
                     </div>
 
@@ -214,9 +214,9 @@
                         <i class="fa-solid fa-location-dot"></i>
                         <span>{{ item['location'] }}</span>
                       </div>
-                      <div class="info-row">
+                      <div class="info-row" title="Reported: {{ item['date_reported'] }}">
                         <i class="fa-regular fa-clock"></i>
-                        <span>{{ item['date_reported'] }}</span>
+                        <span>{{ item['date_reported']|time_ago }}</span>
                       </div>
                     </div>
 

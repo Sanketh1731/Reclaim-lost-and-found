@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}500 — Server Error | ReClaim{% endblock %}
+
+{% block content %}
+<div class="section-wrap" style="min-height:65vh;display:flex;align-items:center;justify-content:center;">
+  <div class="container" style="text-align:center;max-width:580px;">
+    <div style="width:80px;height:80px;border-radius:50%;background:rgba(245,158,11,0.1);color:var(--status-match);display:inline-flex;align-items:center;justify-content:center;font-size:36px;margin-bottom:20px;">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+    </div>
+    <h1 style="font-size:32px;margin-bottom:8px;">500 — Internal Server Error</h1>
+    <p class="muted" style="font-size:15px;line-height:1.6;margin-bottom:24px;">
+      Something unexpected happened on our server. Our team has been alerted. Please try refreshing or return to the home feed.
+    </p>
+
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap;">
+      <a href="/" class="btn btn-primary">
+        <i class="fa-solid fa-house"></i> Return to Homepage
+      </a>
+      <a href="javascript:location.reload()" class="btn btn-secondary">
+        <i class="fa-solid fa-rotate-right"></i> Try Again
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
